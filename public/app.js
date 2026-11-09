@@ -72,6 +72,13 @@ const elements = {
   // Modals
   modalPass: document.getElementById('modal-pass'),
   modalSessionForm: document.getElementById('modal-session-form'),
+  modalAdminLock: document.getElementById('modal-admin-lock'),
+  formAdminLock: document.getElementById('form-admin-lock'),
+  adminPinInput: document.getElementById('admin-pin-input'),
+  adminPinError: document.getElementById('admin-pin-error'),
+  btnCloseAdminLock: document.getElementById('btn-close-admin-lock'),
+  btnCancelAdminLock: document.getElementById('btn-cancel-admin-lock'),
+  btnLockAdmin: document.getElementById('btn-lock-admin'),
 
   // Pass Modal Details
   passIdBadge: document.getElementById('pass-id-badge'),
@@ -1658,6 +1665,87 @@ async function uploadExcelFile(file) {
 }
 
 // -------------------------------------------------------------
+// ADMIN LOCK & PASSCODE PROTECTION (PIN: 786786)
+// -------------------------------------------------------------
+const ADMIN_LOCK_PIN = '786786';
+
+function isAdminAuthenticated() {
+  return sessionStorage.getItem('confluence_admin_unlocked') === 'true';
+}
+
+function openAdminLockModal() {
+  if (elements.adminPinInput) {
+    elements.adminPinInput.value = '';
+    elements.adminPinInput.classList.remove('border-rose-500', 'ring-4', 'ring-rose-500/20');
+  }
+  if (elements.adminPinError) {
+    elements.adminPinError.classList.add('hidden');
+  }
+  if (elements.modalAdminLock) {
+    elements.modalAdminLock.classList.remove('hidden');
+    elements.modalAdminLock.classList.add('flex');
+    lucide.createIcons({ root: elements.modalAdminLock });
+    setTimeout(() => {
+      if (elements.adminPinInput) elements.adminPinInput.focus();
+    }, 150);
+  }
+}
+
+function closeAdminLockModal() {
+  if (elements.modalAdminLock) {
+    elements.modalAdminLock.classList.add('hidden');
+    elements.modalAdminLock.classList.remove('flex');
+  }
+  if (elements.adminPinInput) {
+    elements.adminPinInput.value = '';
+  }
+}
+
+if (elements.formAdminLock) {
+  elements.formAdminLock.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const enteredPin = (elements.adminPinInput.value || '').trim();
+    if (enteredPin === ADMIN_LOCK_PIN) {
+      sessionStorage.setItem('confluence_admin_unlocked', 'true');
+      closeAdminLockModal();
+      showToast("🔓 Admin Panel Unlocked!", "success");
+      
+      // Reveal Admin Panel View
+      elements.viewAdmin.classList.remove('hidden');
+      elements.viewReg.classList.add('hidden');
+      elements.navAdminBtn.classList.add('bg-brand-600', 'text-white');
+      elements.navAdminBtn.classList.remove('text-slate-400');
+      elements.navRegBtn.classList.remove('bg-brand-600', 'text-white');
+      elements.navRegBtn.classList.add('text-slate-400');
+      switchAdminTab(state.currentAdminTab);
+    } else {
+      if (elements.adminPinError) {
+        elements.adminPinError.classList.remove('hidden');
+      }
+      elements.adminPinInput.classList.add('border-rose-500', 'ring-4', 'ring-rose-500/20');
+      elements.adminPinInput.value = '';
+      elements.adminPinInput.focus();
+      showToast("❌ Incorrect Admin PIN! Access denied.", "error");
+    }
+  });
+}
+
+if (elements.btnCloseAdminLock) {
+  elements.btnCloseAdminLock.addEventListener('click', closeAdminLockModal);
+}
+if (elements.btnCancelAdminLock) {
+  elements.btnCancelAdminLock.addEventListener('click', closeAdminLockModal);
+}
+
+if (elements.btnLockAdmin) {
+  elements.btnLockAdmin.addEventListener('click', () => {
+    sessionStorage.removeItem('confluence_admin_unlocked');
+    elements.navRegBtn.click();
+    showToast("🔒 Admin Panel has been locked.", "info");
+  });
+}
+
+// -------------------------------------------------------------
 // NAVIGATION VIEW SWITCHER
 // -------------------------------------------------------------
 elements.navRegBtn.addEventListener('click', () => {
@@ -1671,6 +1759,11 @@ elements.navRegBtn.addEventListener('click', () => {
 });
 
 elements.navAdminBtn.addEventListener('click', () => {
+  if (!isAdminAuthenticated()) {
+    openAdminLockModal();
+    return;
+  }
+
   elements.viewAdmin.classList.remove('hidden');
   elements.viewReg.classList.add('hidden');
 

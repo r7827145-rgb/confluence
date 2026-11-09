@@ -426,13 +426,17 @@
 
         <div class="flex items-center gap-2">
           <!-- Master Excel Export -->
-          <a href="/api/export/master/excel" download="CONFLUENCE_Master_Registrations.xlsx" class="inline-flex items-center gap-1.5 px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold transition shadow-sm">
+          <a href="/api/export/master/excel" download="CONFLUENCE_Master_Registrations.xlsx" class="inline-flex items-center gap-1.5 px-3 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold transition shadow-sm">
             <i data-lucide="file-spreadsheet" class="w-4 h-4"></i>
-            <span>Export Master Excel</span>
+            <span>Export Excel</span>
           </a>
-          <button id="btn-create-session-modal" class="inline-flex items-center gap-1.5 px-3.5 py-2 bg-brand-600 hover:bg-brand-500 text-white rounded-xl text-xs font-bold transition shadow-sm shadow-brand-600/30">
+          <button id="btn-create-session-modal" class="inline-flex items-center gap-1.5 px-3 py-2 bg-brand-600 hover:bg-brand-500 text-white rounded-xl text-xs font-bold transition shadow-sm shadow-brand-600/30">
             <i data-lucide="plus" class="w-4 h-4"></i>
-            <span>Add New Session</span>
+            <span>Add Session</span>
+          </button>
+          <button id="btn-lock-admin" title="Lock Admin Panel" class="inline-flex items-center gap-1.5 px-3 py-2 bg-slate-800 hover:bg-rose-950/60 text-slate-300 hover:text-rose-300 rounded-xl text-xs font-bold transition border border-slate-700">
+            <i data-lucide="lock" class="w-4 h-4 text-amber-400"></i>
+            <span>Lock</span>
           </button>
         </div>
       </div>
@@ -831,6 +835,52 @@
         <div class="flex justify-end gap-2 pt-3 border-t border-cardBorder">
           <button type="button" id="btn-cancel-session-modal" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl transition">Cancel</button>
           <button type="submit" class="px-5 py-2 bg-brand-600 hover:bg-brand-500 text-white rounded-xl font-bold transition">Save Session</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL 3: ADMIN PIN LOCK MODAL -->
+  <div id="modal-admin-lock" class="fixed inset-0 z-50 bg-black/85 backdrop-blur-md hidden items-center justify-center p-4">
+    <div class="bg-slate-900 border border-brand-500/40 rounded-3xl max-w-sm w-full overflow-hidden shadow-2xl glow-orange animate-scale-up text-center p-6 sm:p-7 relative">
+      <button id="btn-close-admin-lock" type="button" class="absolute top-4 right-4 text-slate-400 hover:text-white p-1 rounded-lg">
+        <i data-lucide="x" class="w-4 h-4"></i>
+      </button>
+
+      <div class="w-14 h-14 rounded-2xl bg-gradient-to-tr from-brand-700 to-amber-500 text-white flex items-center justify-center mx-auto mb-3.5 shadow-lg shadow-brand-600/30">
+        <i data-lucide="shield-check" class="w-7 h-7"></i>
+      </div>
+
+      <h4 class="text-xl font-black font-heading text-white">Admin Lock</h4>
+      <p class="text-xs text-slate-400 mt-1 mb-5">Enter security passcode to access Admin Panel operations.</p>
+
+      <form id="form-admin-lock" class="space-y-4">
+        <div class="relative">
+          <input 
+            type="password" 
+            id="admin-pin-input" 
+            maxlength="10" 
+            placeholder="••••••" 
+            autocomplete="off"
+            inputmode="numeric"
+            class="w-full bg-slate-950 border-2 border-slate-700 focus:border-brand-500 focus:ring-4 focus:ring-brand-500/20 text-center text-2xl tracking-[0.4em] font-mono font-bold text-white py-3 rounded-2xl focus:outline-none transition"
+            required
+          />
+        </div>
+
+        <div id="admin-pin-error" class="hidden text-xs font-bold text-rose-400 flex items-center justify-center gap-1.5">
+          <i data-lucide="alert-circle" class="w-3.5 h-3.5"></i>
+          <span>Incorrect passcode! Access Denied.</span>
+        </div>
+
+        <div class="flex gap-2 pt-1">
+          <button type="button" id="btn-cancel-admin-lock" class="flex-1 py-2.5 bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-300 rounded-xl text-xs font-semibold transition">
+            Cancel
+          </button>
+          <button type="submit" class="flex-1 py-2.5 bg-gradient-to-r from-brand-600 to-amber-600 hover:from-brand-500 hover:to-amber-500 active:scale-95 text-white font-extrabold rounded-xl text-xs transition shadow-lg shadow-brand-600/30 flex items-center justify-center gap-1.5">
+            <i data-lucide="unlock" class="w-4 h-4"></i>
+            <span>Unlock</span>
+          </button>
         </div>
       </form>
     </div>
