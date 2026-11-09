@@ -42,6 +42,7 @@ const elements = {
   studentEnrolledSummary: document.getElementById('student-enrolled-summary'),
   studentRegCount: document.getElementById('student-reg-count'),
   studentRegList: document.getElementById('student-reg-list'),
+  btnClearActiveStudentRegs: document.getElementById('btn-clear-active-student-regs'),
 
   // Step 2 & Checkbox Table Elements
   step2Container: document.getElementById('step2-container'),
@@ -64,6 +65,10 @@ const elements = {
   adminStudentsTable: document.getElementById('admin-students-table'),
   adminStudentCount: document.getElementById('admin-student-count'),
   adminStudentSearch: document.getElementById('admin-student-search'),
+  adminTabRegCount: document.getElementById('admin-tab-reg-count'),
+  adminRegistrationsCount: document.getElementById('admin-registrations-count'),
+  adminRegistrationSearch: document.getElementById('admin-registration-search'),
+  adminRegistrationsTable: document.getElementById('admin-registrations-table'),
   kpiSessions: document.getElementById('kpi-sessions'),
   kpiRegistrations: document.getElementById('kpi-registrations'),
   kpiCapacity: document.getElementById('kpi-capacity'),
@@ -193,6 +198,8 @@ async function updateStats() {
     // Update KPIs
     elements.kpiSessions.textContent = state.stats.totalSessions;
     elements.kpiRegistrations.textContent = state.stats.totalRegistrations;
+    if (elements.adminTabRegCount) elements.adminTabRegCount.textContent = state.stats.totalRegistrations;
+    if (elements.adminRegistrationsCount) elements.adminRegistrationsCount.textContent = state.stats.totalRegistrations;
     elements.kpiCapacity.textContent = state.stats.totalSeats;
     elements.kpiFull.textContent = state.stats.fullSessionsCount;
 
@@ -371,6 +378,15 @@ function updateActiveStudentRegistrations() {
   const enrolled = state.registrations.filter(r => r.studentId === state.activeStudent.id);
   elements.studentRegCount.textContent = `${enrolled.length} session(s)`;
 
+  if (elements.btnClearActiveStudentRegs) {
+    if (enrolled.length > 0) {
+      elements.btnClearActiveStudentRegs.classList.remove('hidden');
+      elements.btnClearActiveStudentRegs.onclick = () => window.clearStudentRegistrations(state.activeStudent.id, state.activeStudent.name);
+    } else {
+      elements.btnClearActiveStudentRegs.classList.add('hidden');
+    }
+  }
+
   const list = elements.studentRegList;
   list.innerHTML = '';
 
@@ -384,7 +400,7 @@ function updateActiveStudentRegistrations() {
         <i data-lucide="check" class="w-3.5 h-3.5 text-emerald-400"></i>
         <span class="font-bold">${reg.sessionTitle}</span>
         <span class="text-[10px] text-emerald-400 font-mono">(${reg.venue} • ${reg.timeSlot})</span>
-        <button onclick="cancelRegistration('${reg.id}')" title="Cancel this registration" class="text-emerald-400 hover:text-rose-400 ml-1.5 p-0.5 rounded hover:bg-emerald-900/40 transition">
+        <button onclick="cancelRegistration('${reg.id}', '${(reg.sessionTitle || 'session').replace(/'/g, "\\'")}')" title="Delete this session registration" class="text-emerald-400 hover:text-rose-400 ml-1.5 p-0.5 rounded hover:bg-emerald-900/40 transition">
           <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
         </button>
       `;
@@ -525,11 +541,15 @@ function renderSessionsChecklist() {
         `;
       } else if (isEnrolled) {
         tickHtml = `
-          <div class="flex flex-col items-center justify-center">
+          <div class="flex flex-col items-center justify-center gap-1">
             <span class="w-6 h-6 rounded-lg bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 flex items-center justify-center text-xs font-bold" title="Already Registered">
               <i data-lucide="check" class="w-4 h-4"></i>
             </span>
-            <span class="text-[9px] text-emerald-400 font-bold mt-0.5 uppercase tracking-tighter">Enrolled</span>
+            <span class="text-[9px] text-emerald-400 font-bold uppercase tracking-tighter">Enrolled</span>
+            <button type="button" onclick="cancelRegistrationForSession('${session.id}', event)" title="Cancel/Delete this registration" class="px-1.5 py-0.5 rounded bg-rose-950/80 hover:bg-rose-900 border border-rose-500/40 text-rose-300 text-[9px] font-bold inline-flex items-center gap-0.5 transition shadow-sm">
+              <i data-lucide="trash-2" class="w-2.5 h-2.5 text-rose-400"></i>
+              <span>Cancel</span>
+            </button>
           </div>
         `;
       } else if (isFull) {
@@ -652,10 +672,16 @@ function renderSessionsChecklist() {
         `;
       } else if (isEnrolled) {
         mobileIndicatorHtml = `
-          <span class="px-2.5 py-0.5 rounded-lg bg-emerald-950/90 text-emerald-300 border border-emerald-500/50 flex items-center gap-1 text-[11px] font-bold">
-            <i data-lucide="check" class="w-3.5 h-3.5 text-emerald-400"></i>
-            <span>ENROLLED</span>
-          </span>
+          <div class="flex items-center gap-1.5">
+            <span class="px-2 py-0.5 rounded-lg bg-emerald-950/90 text-emerald-300 border border-emerald-500/50 flex items-center gap-1 text-[11px] font-bold">
+              <i data-lucide="check" class="w-3.5 h-3.5 text-emerald-400"></i>
+              <span>ENROLLED</span>
+            </span>
+            <button type="button" onclick="cancelRegistrationForSession('${session.id}', event)" title="Cancel/Delete this registration" class="px-2 py-0.5 rounded-lg bg-rose-950/80 hover:bg-rose-900 border border-rose-500/40 text-rose-300 text-[10px] font-bold inline-flex items-center gap-1 transition shadow-sm">
+              <i data-lucide="trash-2" class="w-3 h-3 text-rose-400"></i>
+              <span>Cancel</span>
+            </button>
+          </div>
         `;
       } else if (isFull) {
         mobileIndicatorHtml = `
@@ -974,8 +1000,8 @@ elements.btnPrintPass.addEventListener('click', () => {
   window.print();
 });
 
-window.cancelRegistration = async function(regId) {
-  if (!confirm("Are you sure you want to cancel this session registration? This will free up the seat.")) {
+window.cancelRegistration = async function(regId, title = 'this session') {
+  if (!confirm(`Are you sure you want to delete this registration for ${title}? This will immediately free up the seat.`)) {
     return;
   }
 
@@ -983,15 +1009,80 @@ window.cancelRegistration = async function(regId) {
     const res = await fetch(`/api/registrations/${regId}`, { method: 'DELETE' });
     const data = await res.json();
     if (res.ok) {
-      showToast(data.message, "info");
-      await fetchSessions();
-      await fetchRegistrations();
-      updateStats();
+      showToast(data.message || "Registration deleted successfully.", "info");
+
+      // Update local state immediately
+      const deletedReg = state.registrations.find(r => r.id === regId);
+      if (deletedReg) {
+        state.registrations = state.registrations.filter(r => r.id !== regId);
+        const s = state.sessions.find(x => x.id === deletedReg.sessionId);
+        if (s && s.registeredCount > 0) {
+          s.registeredCount--;
+        }
+      }
+
+      // Re-render UI immediately
+      updateActiveStudentRegistrations();
+      renderSessionsChecklist();
+      renderAdminSummary();
+      renderAdminStudentsTable();
+      renderAdminRegistrationsTable();
+
+      // Background sync
+      fetchSessions().catch(console.error);
+      fetchRegistrations().catch(console.error);
+      updateStats().catch(console.error);
     } else {
       showToast(data.error || "Failed to cancel registration.", "error");
     }
   } catch (err) {
     console.error("Cancel registration error:", err);
+    showToast("Network error while deleting registration.", "error");
+  }
+};
+
+window.cancelRegistrationForSession = function(sessionId, e) {
+  if (e) e.stopPropagation();
+  if (!state.activeStudent) return;
+  const reg = state.registrations.find(r => r.studentId === state.activeStudent.id && r.sessionId === sessionId);
+  if (reg) {
+    window.cancelRegistration(reg.id, reg.sessionTitle || 'this session');
+  } else {
+    showToast("Registration not found for this session.", "error");
+  }
+};
+
+window.clearStudentRegistrations = async function(studentId, studentName = 'this student') {
+  if (!confirm(`Are you sure you want to delete ALL registrations for "${studentName}"? All booked seats will be freed up immediately.`)) {
+    return;
+  }
+
+  try {
+    const res = await fetch(`/api/registrations/student/${studentId}`, { method: 'DELETE' });
+    const data = await res.json();
+    if (res.ok) {
+      showToast(data.message || `All registrations cleared for ${studentName}.`, "info");
+
+      // Update local state immediately
+      state.registrations = state.registrations.filter(r => r.studentId !== studentId);
+
+      // Re-render UI immediately
+      updateActiveStudentRegistrations();
+      renderSessionsChecklist();
+      renderAdminSummary();
+      renderAdminStudentsTable();
+      renderAdminRegistrationsTable();
+
+      // Background sync
+      fetchSessions().catch(console.error);
+      fetchRegistrations().catch(console.error);
+      updateStats().catch(console.error);
+    } else {
+      showToast(data.error || "Failed to clear student registrations.", "error");
+    }
+  } catch (err) {
+    console.error("Clear student registrations error:", err);
+    showToast("Network error while clearing registrations.", "error");
   }
 };
 
@@ -1001,12 +1092,17 @@ window.cancelRegistration = async function(regId) {
 const adminTabs = {
   summary: document.getElementById('admin-tab-summary'),
   sessions: document.getElementById('admin-tab-sessions'),
-  students: document.getElementById('admin-tab-students')
+  students: document.getElementById('admin-tab-students'),
+  registrations: document.getElementById('admin-tab-registrations')
 };
 
 document.getElementById('admin-tab-btn-summary').addEventListener('click', () => switchAdminTab('summary'));
 document.getElementById('admin-tab-btn-sessions').addEventListener('click', () => switchAdminTab('sessions'));
 document.getElementById('admin-tab-btn-students').addEventListener('click', () => switchAdminTab('students'));
+const btnAdminTabRegs = document.getElementById('admin-tab-btn-registrations');
+if (btnAdminTabRegs) {
+  btnAdminTabRegs.addEventListener('click', () => switchAdminTab('registrations'));
+}
 
 function switchAdminTab(tabKey) {
   state.currentAdminTab = tabKey;
@@ -1023,16 +1119,19 @@ function switchAdminTab(tabKey) {
   }
 
   Object.keys(adminTabs).forEach(key => {
-    if (key === tabKey) {
-      adminTabs[key].classList.remove('hidden');
-    } else {
-      adminTabs[key].classList.add('hidden');
+    if (adminTabs[key]) {
+      if (key === tabKey) {
+        adminTabs[key].classList.remove('hidden');
+      } else {
+        adminTabs[key].classList.add('hidden');
+      }
     }
   });
 
   if (tabKey === 'summary') renderAdminSummary();
   if (tabKey === 'sessions') renderAdminSessionsTable();
   if (tabKey === 'students') renderAdminStudentsTable();
+  if (tabKey === 'registrations') renderAdminRegistrationsTable();
 }
 
 function renderAdminSummary() {
@@ -1563,12 +1662,20 @@ function renderAdminStudentsTable(filterText = '') {
       <td class="px-4 py-2.5 text-brand-300 font-bold">${st.className}</td>
       <td class="px-4 py-2.5 text-slate-300 font-mono">${st.rollNo || '-'}</td>
       <td class="px-4 py-2.5">
-        <span class="px-2 py-0.5 rounded-full text-[10px] font-mono ${studentRegs.length > 0 ? 'bg-emerald-500/20 text-emerald-400' : 'bg-slate-800 text-slate-500'}">
-          ${studentRegs.length} session(s)
-        </span>
+        <div class="flex items-center gap-1.5 flex-wrap">
+          <span class="px-2 py-0.5 rounded-full text-[10px] font-mono ${studentRegs.length > 0 ? 'bg-emerald-500/20 text-emerald-400 font-bold' : 'bg-slate-800 text-slate-500'}">
+            ${studentRegs.length} session(s)
+          </span>
+          ${studentRegs.length > 0 ? `
+            <button onclick="clearStudentRegistrations('${st.id}', '${st.name.replace(/'/g, "\\'")}')" title="Delete all session registrations for this student" class="px-1.5 py-0.5 rounded bg-rose-950/80 hover:bg-rose-900 border border-rose-500/40 text-rose-300 text-[10px] font-bold inline-flex items-center gap-1 transition shadow-sm">
+              <i data-lucide="trash-2" class="w-2.5 h-2.5 text-rose-400"></i>
+              <span>Delete Regs</span>
+            </button>
+          ` : ''}
+        </div>
       </td>
       <td class="px-4 py-2.5 text-right">
-        <button onclick="deleteStudent('${st.id}')" title="Delete Student" class="p-1 text-slate-500 hover:text-rose-400 transition">
+        <button onclick="deleteStudent('${st.id}')" title="Delete Student from Roster" class="p-1 text-slate-500 hover:text-rose-400 transition">
           <i data-lucide="trash" class="w-3.5 h-3.5"></i>
         </button>
       </td>
@@ -1582,6 +1689,69 @@ function renderAdminStudentsTable(filterText = '') {
 elements.adminStudentSearch.addEventListener('input', (e) => {
   renderAdminStudentsTable(e.target.value.trim());
 });
+
+// -------------------------------------------------------------
+// LIVE REGISTRATIONS TABLE & SEARCH (ADMIN TAB 4)
+// -------------------------------------------------------------
+function renderAdminRegistrationsTable(filterText = '') {
+  const tbody = elements.adminRegistrationsTable;
+  if (!tbody) return;
+  tbody.innerHTML = '';
+
+  let list = state.registrations || [];
+  if (filterText) {
+    const f = filterText.toLowerCase();
+    list = list.filter(r => 
+      (r.studentName && r.studentName.toLowerCase().includes(f)) || 
+      (r.studentClass && r.studentClass.toLowerCase().includes(f)) ||
+      (r.sessionTitle && r.sessionTitle.toLowerCase().includes(f)) ||
+      (r.venue && r.venue.toLowerCase().includes(f)) ||
+      (r.id && r.id.toLowerCase().includes(f))
+    );
+  }
+
+  if (elements.adminRegistrationsCount) {
+    elements.adminRegistrationsCount.textContent = list.length;
+  }
+  if (elements.adminTabRegCount) {
+    elements.adminTabRegCount.textContent = (state.registrations || []).length;
+  }
+
+  if (list.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="7" class="px-4 py-8 text-center text-slate-500">No student registrations found.</td></tr>`;
+    return;
+  }
+
+  list.forEach((reg, idx) => {
+    const tr = document.createElement('tr');
+    tr.className = 'hover:bg-slate-900/40 transition';
+    tr.innerHTML = `
+      <td class="px-4 py-2.5 font-mono text-slate-500 text-center">${idx + 1}</td>
+      <td class="px-4 py-2.5 font-mono text-brand-400 font-bold">${reg.id}</td>
+      <td class="px-4 py-2.5 font-bold text-white">${reg.studentName}</td>
+      <td class="px-4 py-2.5 text-brand-300 font-bold">${reg.studentClass}</td>
+      <td class="px-4 py-2.5 text-slate-200 font-semibold">${reg.sessionTitle}</td>
+      <td class="px-4 py-2.5 text-slate-400">
+        <span class="text-amber-400 font-mono font-bold">${reg.timeSlot || ''}</span> • ${reg.venue || ''}
+      </td>
+      <td class="px-4 py-2.5 text-right">
+        <button onclick="cancelRegistration('${reg.id}', '${(reg.sessionTitle || 'session').replace(/'/g, "\\'")}')" title="Delete this registration" class="px-2.5 py-1 rounded-lg bg-rose-950/80 hover:bg-rose-900 border border-rose-500/40 text-rose-300 hover:text-white text-xs font-bold inline-flex items-center gap-1.5 transition shadow-sm">
+          <i data-lucide="trash-2" class="w-3.5 h-3.5 text-rose-400"></i>
+          <span>Delete</span>
+        </button>
+      </td>
+    `;
+    tbody.appendChild(tr);
+  });
+
+  lucide.createIcons({ root: tbody });
+}
+
+if (elements.adminRegistrationSearch) {
+  elements.adminRegistrationSearch.addEventListener('input', (e) => {
+    renderAdminRegistrationsTable(e.target.value.trim());
+  });
+}
 
 elements.formAddStudent.addEventListener('submit', async (e) => {
   e.preventDefault();

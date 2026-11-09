@@ -406,6 +406,11 @@ async function deleteRegistration(id) {
   return res.rowCount > 0;
 }
 
+async function deleteStudentRegistrations(studentId) {
+  const res = await pool.query('DELETE FROM public.confluence_registrations WHERE student_id = $1', [studentId]);
+  return res.rowCount;
+}
+
 module.exports = {
   pool,
   initDb,
@@ -419,5 +424,6 @@ module.exports = {
   deleteStudent,
   getRegistrations,
   registerBatch,
-  deleteRegistration
+  deleteRegistration,
+  deleteStudentRegistrations
 };

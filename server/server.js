@@ -226,10 +226,22 @@ app.delete('/api/registrations/:id', async (req, res) => {
     if (!success) {
       return res.status(404).json({ error: 'Registration not found' });
     }
-    res.json({ message: 'Registration cancelled successfully. Seat has been freed up in PostgreSQL.' });
+    res.json({ message: 'Registration cancelled successfully. Seat has been freed up.' });
   } catch (err) {
     console.error("Error cancelling registration:", err);
     res.status(500).json({ error: "Failed to cancel registration." });
+  }
+});
+
+// 13b. Cancel all registrations for a student
+app.delete('/api/registrations/student/:studentId', async (req, res) => {
+  try {
+    const { studentId } = req.params;
+    const count = await pgdb.deleteStudentRegistrations(studentId);
+    res.json({ message: `Successfully cancelled ${count} registration(s) for student. Seats have been freed up.`, count });
+  } catch (err) {
+    console.error("Error cancelling student registrations:", err);
+    res.status(500).json({ error: "Failed to cancel student registrations." });
   }
 });
 
