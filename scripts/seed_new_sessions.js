@@ -7,9 +7,9 @@ const pool = new Pool({
   ssl: { rejectUnauthorized: false }
 });
 
-const newSessions = [
+const officialSessions = [
   {
-    id: `sess-${Date.now()}-1`,
+    id: "sess-market-mind",
     title: "MARKET MIND",
     subtitle: "Understanding Stocks, Shares & Investments",
     speaker: "SHABEER AROOR",
@@ -19,13 +19,13 @@ const newSessions = [
     startTime: "09:00 AM",
     endTime: "10:30 AM",
     timeSlot: "09:00 AM - 10:30 AM",
-    quota: 75,
+    quota: 0, // 0 = Open / Dynamic Quota (No hardcoded limit)
     category: "Incubator",
     tagColor: "cyan",
     description: "Deep dive into financial markets, stock valuation, equity investments, and wealth fundamentals."
   },
   {
-    id: `sess-${Date.now()}-2`,
+    id: "sess-money-matters",
     title: "MONEY MATTERS",
     subtitle: "Mastering Personal Finance",
     speaker: "FAYAS AMHAD",
@@ -35,13 +35,13 @@ const newSessions = [
     startTime: "09:00 AM",
     endTime: "10:30 AM",
     timeSlot: "09:00 AM - 10:30 AM",
-    quota: 85,
+    quota: 0,
     category: "Majlis",
     tagColor: "amber",
     description: "Practical guide to budgeting, wealth management, asset allocation, and financial freedom."
   },
   {
-    id: `sess-${Date.now()}-3`,
+    id: "sess-beyond-ordinary",
     title: "BEYOND THE ORDINARY",
     subtitle: "Courage, Creativity & Entrepreneurship",
     speaker: "ASHEEKA KHADEEJA",
@@ -51,13 +51,13 @@ const newSessions = [
     startTime: "09:00 AM",
     endTime: "10:30 AM",
     timeSlot: "09:00 AM - 10:30 AM",
-    quota: 90,
+    quota: 0,
     category: "General",
     tagColor: "orange",
     description: "An inspiring entrepreneurial journey on creative thinking, branding, and taking bold risks."
   },
   {
-    id: `sess-${Date.now()}-4`,
+    id: "sess-art-influence",
     title: "THE ART OF INFLUENCE",
     subtitle: "Marketing Psychology & Brand Strategy",
     speaker: "NIZAMUDHEEN KC",
@@ -67,13 +67,13 @@ const newSessions = [
     startTime: "10:30 AM",
     endTime: "12:00 PM",
     timeSlot: "10:30 AM - 12:00 PM",
-    quota: 85,
+    quota: 0,
     category: "Majlis",
     tagColor: "orange",
     description: "How psychology drives consumer behavior, brand perception, storytelling, and high-impact conversions."
   },
   {
-    id: `sess-${Date.now()}-5`,
+    id: "sess-future-automated",
     title: "THE FUTURE IS AUTOMATED",
     subtitle: "AI Applications Across Commerce",
     speaker: "IRSHAD KK",
@@ -83,13 +83,13 @@ const newSessions = [
     startTime: "10:30 AM",
     endTime: "12:00 PM",
     timeSlot: "10:30 AM - 12:00 PM",
-    quota: 75,
+    quota: 0,
     category: "Incubator",
     tagColor: "emerald",
     description: "Next-generation AI workflows, process automation, predictive analytics, and tech disruption in commerce."
   },
   {
-    id: `sess-${Date.now()}-6`,
+    id: "sess-start-to-up",
     title: "START TO UP",
     subtitle: "The Art of Creating a Startup",
     speaker: "MUHAMMED FAWAS",
@@ -99,13 +99,13 @@ const newSessions = [
     startTime: "12:00 PM",
     endTime: "01:30 PM",
     timeSlot: "12:00 PM - 01:30 PM",
-    quota: 85,
+    quota: 0,
     category: "Majlis",
     tagColor: "orange",
     description: "Foundational playbook for building a scalable venture: idea validation, business models, and execution."
   },
   {
-    id: `sess-${Date.now()}-7`,
+    id: "sess-hot-seat",
     title: "HOT SEAT",
     subtitle: "Live Business Challenges & Rapid-Fire Decisions",
     speaker: "Conclave Mentors",
@@ -115,13 +115,13 @@ const newSessions = [
     startTime: "12:00 PM",
     endTime: "01:30 PM",
     timeSlot: "12:00 PM - 01:30 PM",
-    quota: 75,
+    quota: 0,
     category: "Incubator",
     tagColor: "rose",
     description: "Intense rapid-fire decision-making simulation solving real-time crisis and market pressures."
   },
   {
-    id: `sess-${Date.now()}-8`,
+    id: "sess-pacioli-team",
     title: "PACIOLI TEAM",
     subtitle: "Incubator & IF",
     speaker: "MOHAMMED ALTHAF K, CA UNAIS PERINGODAN, KHALID MOHAMMED",
@@ -131,13 +131,13 @@ const newSessions = [
     startTime: "02:30 PM",
     endTime: "04:00 PM",
     timeSlot: "02:30 PM - 04:00 PM",
-    quota: 75,
+    quota: 0,
     category: "Incubator",
     tagColor: "cyan",
     description: "Accounting precision, audit standards, tax compliance, and investment governance for modern enterprises."
   },
   {
-    id: `sess-${Date.now()}-9`,
+    id: "sess-beyond-breakdown",
     title: "BEYOND THE BREAKDOWN",
     subtitle: "Managing Crises Through Innovation",
     speaker: "MOOSA NAVAS",
@@ -147,7 +147,7 @@ const newSessions = [
     startTime: "02:30 PM",
     endTime: "04:00 PM",
     timeSlot: "02:30 PM - 04:00 PM",
-    quota: 85,
+    quota: 0,
     category: "Majlis",
     tagColor: "amber",
     description: "How resilient leaders navigate market downturns, restructure operations, and emerge stronger."
@@ -159,12 +159,12 @@ async function run() {
   try {
     await client.query('BEGIN');
     
-    // Clear any previous sessions
+    // Clear and populate with stable IDs
     await client.query('DELETE FROM public.confluence_registrations');
     await client.query('DELETE FROM public.confluence_sessions');
-    console.log('Cleared previous sessions table.');
+    console.log('Cleared previous sessions.');
 
-    for (const s of newSessions) {
+    for (const s of officialSessions) {
       await client.query(`
         INSERT INTO public.confluence_sessions (id, title, subtitle, speaker, speaker_role, venue, session_date, start_time, end_time, time_slot, quota, category, tag_color, description)
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14);
@@ -172,7 +172,7 @@ async function run() {
     }
 
     await client.query('COMMIT');
-    console.log(`✅ Successfully added ${newSessions.length} sessions from flyer into PostgreSQL!`);
+    console.log(`✅ Successfully seeded ${officialSessions.length} official flyer sessions with dynamic open quotas!`);
   } catch (err) {
     await client.query('ROLLBACK');
     console.error('Error inserting sessions:', err);

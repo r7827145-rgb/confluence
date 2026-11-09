@@ -587,15 +587,23 @@ function renderSessionsChecklist() {
           <div class="text-[10px] text-slate-400">${session.speakerRole || ''}</div>
         </td>
         <td class="py-3 px-4 align-middle text-center min-w-[140px]">
-          <div class="text-xs font-mono font-semibold ${isFull ? 'text-rose-400' : 'text-slate-300'}">
-            <strong>${session.registeredCount}</strong> / ${session.quota} filled
-          </div>
-          <div class="w-full bg-slate-900 rounded-full h-1.5 overflow-hidden border border-slate-800 mt-1">
-            <div class="${progressColor} h-full rounded-full transition-all" style="width: ${progressWidth}"></div>
-          </div>
-          <div class="text-[10px] mt-0.5 ${isFull ? 'text-rose-400 font-bold' : 'text-emerald-400'}">
-            ${isFull ? 'Quota Full' : `${session.remainingQuota} seats left`}
-          </div>
+          ${(session.quota && session.quota > 0 && session.quota < 500) ? `
+            <div class="text-xs font-mono font-semibold ${isFull ? 'text-rose-400' : 'text-slate-300'}">
+              <strong>${session.registeredCount}</strong> / ${session.quota} filled
+            </div>
+            <div class="w-full bg-slate-900 rounded-full h-1.5 overflow-hidden border border-slate-800 mt-1">
+              <div class="${progressColor} h-full rounded-full transition-all" style="width: ${progressWidth}"></div>
+            </div>
+            <div class="text-[10px] mt-0.5 ${isFull ? 'text-rose-400 font-bold' : 'text-emerald-400'}">
+              ${isFull ? 'Quota Full' : `${session.remainingQuota} seats left`}
+            </div>
+          ` : `
+            <div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-950/60 border border-emerald-500/30 text-emerald-400 font-bold text-xs shadow-sm">
+              <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+              <span>Available</span>
+            </div>
+            <div class="text-[10px] text-slate-400 font-mono mt-1">${session.registeredCount} registered</div>
+          `}
         </td>
       `;
 
@@ -707,12 +715,20 @@ function renderSessionsChecklist() {
             </div>
           </div>
           <div class="text-right flex-shrink-0">
-            <span class="text-[10px] font-mono font-bold ${isFull ? 'text-rose-400' : 'text-emerald-400'}">
-              ${isFull ? 'FULL' : `${session.remainingQuota} seats left`}
-            </span>
-            <div class="w-16 bg-slate-950 rounded-full h-1 overflow-hidden border border-slate-800 mt-0.5">
-              <div class="${progressColor} h-full rounded-full" style="width: ${progressWidth}"></div>
-            </div>
+            ${(session.quota && session.quota > 0 && session.quota < 500) ? `
+              <span class="text-[10px] font-mono font-bold ${isFull ? 'text-rose-400' : 'text-emerald-400'}">
+                ${isFull ? 'FULL' : `${session.remainingQuota} seats left`}
+              </span>
+              <div class="w-16 bg-slate-950 rounded-full h-1 overflow-hidden border border-slate-800 mt-0.5">
+                <div class="${progressColor} h-full rounded-full" style="width: ${progressWidth}"></div>
+              </div>
+            ` : `
+              <span class="inline-flex items-center gap-1 text-[10px] text-emerald-400 font-bold bg-emerald-950/80 px-2 py-0.5 rounded-full border border-emerald-500/30">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                Available
+              </span>
+              <div class="text-[9px] text-slate-400 font-mono mt-0.5">${session.registeredCount} reg</div>
+            `}
           </div>
         </div>
       `;
@@ -865,13 +881,29 @@ elements.btnBatchRegister.addEventListener('click', async () => {
     // Clear ticked sessions
     state.selectedSessionIds.clear();
 
-    // Show Registration Ticket Pass
-    showMultiPassModal(data.registrations || [data.registration], student);
+    const newRegs = data.registrations || (data.registration ? [data.registration] : []);
 
-    // Refresh database state
-    await fetchSessions();
-    await fetchRegistrations();
-    updateStats();
+    // Show Registration Ticket Pass IMMEDIATELY with zero lag!
+    showMultiPassModal(newRegs, student);
+
+    // Update in-memory registrations immediately
+    if (newRegs && newRegs.length > 0) {
+      newRegs.forEach(nr => {
+        state.registrations.push(nr);
+        const s = state.sessions.find(x => x.id === nr.sessionId);
+        if (s) {
+          s.registeredCount = (s.registeredCount || 0) + 1;
+        }
+      });
+    }
+
+    updateActiveStudentRegistrations();
+    renderSessionsChecklist();
+
+    // Background sync without blocking modal display
+    fetchSessions().catch(console.error);
+    fetchRegistrations().catch(console.error);
+    updateStats().catch(console.error);
 
   } catch (err) {
     console.error("Batch registration error:", err);

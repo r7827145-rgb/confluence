@@ -300,77 +300,105 @@ async function getRegistrations(filter = {}) {
 }
 
 async function registerBatch(studentId, sessionIds) {
-  const client = await pool.connect();
-  try {
-    await client.query('BEGIN');
+  // 1. Fetch student, all sessions, and student's existing registrations concurrently on the pool
+  const [stRes, allSessRes, existingRegsRes] = await Promise.all([
+    pool.query('SELECT * FROM public.confluence_students WHERE id = $1', [studentId]),
+    pool.query('SELECT * FROM public.confluence_sessions'),
+    pool.query('SELECT * FROM public.confluence_registrations WHERE student_id = $1', [studentId])
+  ]);
 
-    // 1. Get student
-    const { rows: stRows } = await client.query('SELECT * FROM public.confluence_students WHERE id = $1', [studentId]);
-    if (stRows.length === 0) {
-      throw new Error('Selected student not found in roster.');
+  if (stRes.rows.length === 0) {
+    throw new Error('Selected student not found in roster.');
+  }
+  const student = stRes.rows[0];
+  const existingRegs = existingRegsRes.rows;
+
+    // Match sessions by ID or title (resilient to re-seeding or ID changes)
+    const matchedSessions = [];
+    for (const reqId of sessionIds) {
+      const found = allSessRes.rows.find(s => s.id === reqId || s.title.toLowerCase() === reqId.toLowerCase());
+      if (found) {
+        matchedSessions.push(found);
+      }
     }
-    const student = stRows[0];
 
-    // 2. Get requested sessions
-    const { rows: sessRows } = await client.query('SELECT * FROM public.confluence_sessions WHERE id = ANY($1)', [sessionIds]);
-    if (sessRows.length !== sessionIds.length) {
-      throw new Error('One or more selected sessions could not be found.');
+    if (matchedSessions.length === 0) {
+      throw new Error('No matching sessions found to register.');
     }
 
-    // 3. Time conflict among selected sessions themselves
+    // 2. In-memory time slot conflict check among selected sessions (0ms)
     const slotMap = {};
-    for (const s of sessRows) {
+    for (const s of matchedSessions) {
       if (s.time_slot && s.time_slot !== 'TBD') {
         if (slotMap[s.time_slot]) {
-          throw new Error(`⚠️ Time Slot Conflict: You selected both "${slotMap[s.time_slot].title}" and "${s.title}" which occur at ${s.time_slot}. Please pick only one.`);
+          throw new Error(`⚠️ Time Conflict: You picked both "${slotMap[s.time_slot].title}" and "${s.title}" at ${s.time_slot}. Please pick one.`);
         }
         slotMap[s.time_slot] = s;
       }
     }
 
-    // 4. Existing registrations of student
-    const { rows: existingRegs } = await client.query('SELECT * FROM public.confluence_registrations WHERE student_id = $1', [studentId]);
-
-    const created = [];
-    for (const session of sessRows) {
-      // Check already registered
-      if (existingRegs.some(r => r.session_id === session.id)) {
-        throw new Error(`⚠️ Student "${student.name}" is ALREADY registered for "${session.title}".`);
+    // 3. Existing student registration checks (0ms)
+    for (const s of matchedSessions) {
+      if (existingRegs.some(r => r.session_id === s.id)) {
+        throw new Error(`⚠️ "${student.name}" is ALREADY registered for "${s.title}".`);
       }
-
-      // Check slot conflict with existing
-      if (session.time_slot && session.time_slot !== 'TBD') {
-        const conflict = existingRegs.find(r => r.time_slot === session.time_slot);
+      if (s.time_slot && s.time_slot !== 'TBD') {
+        const conflict = existingRegs.find(r => r.time_slot === s.time_slot);
         if (conflict) {
-          throw new Error(`⚠️ Time Slot Conflict: "${student.name}" is already registered for "${conflict.session_title}" at ${session.time_slot}.`);
+          throw new Error(`⚠️ Time Conflict: "${student.name}" is already registered for "${conflict.session_title}" at ${s.time_slot}.`);
         }
       }
-
-      // Check quota
-      const { rows: regCountRows } = await client.query('SELECT COUNT(*) FROM public.confluence_registrations WHERE session_id = $1', [session.id]);
-      const currentCount = parseInt(regCountRows[0].count, 10);
-      if (currentCount >= session.quota) {
-        throw new Error(`⚠️ Quota Reached! "${session.title}" has filled all ${session.quota} seats.`);
-      }
-
-      const regId = `REG-${Date.now().toString().slice(-4)}${Math.floor(Math.random() * 90 + 10)}`;
-      const insertQuery = `
-        INSERT INTO public.confluence_registrations (id, student_id, student_name, student_class, session_id, session_title, venue, time_slot)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-        RETURNING id, student_id as "studentId", student_name as "studentName", student_class as "studentClass", session_id as "sessionId", session_title as "sessionTitle", venue, time_slot as "timeSlot", registered_at as "registeredAt";
-      `;
-      const { rows: newRegRows } = await client.query(insertQuery, [regId, student.id, student.name, student.class_name, session.id, session.title, session.venue, session.time_slot]);
-      created.push(newRegRows[0]);
     }
 
-    await client.query('COMMIT');
-    return { student, created };
-  } catch (err) {
-    await client.query('ROLLBACK');
-    throw err;
-  } finally {
-    client.release();
-  }
+    // 4. Batch quota check in 1 query for all matched sessions
+    const matchedIds = matchedSessions.map(s => s.id);
+    const { rows: countRows } = await pool.query(
+      'SELECT session_id, count(*)::int as count FROM public.confluence_registrations WHERE session_id = ANY($1) GROUP BY session_id',
+      [matchedIds]
+    );
+    const countMap = {};
+    countRows.forEach(c => { countMap[c.session_id] = c.count; });
+
+    for (const s of matchedSessions) {
+      const quota = parseInt(s.quota, 10);
+      const current = countMap[s.id] || 0;
+      // If quota is set (and not open/unlimited > 500), enforce it
+      if (quota > 0 && quota < 500 && current >= quota) {
+        throw new Error(`⚠️ Quota Reached! "${s.title}" has filled all ${quota} seats.`);
+      }
+    }
+
+    // 5. Single BATCH INSERT in 1 fast transaction!
+    const values = [];
+    const placeholders = [];
+    let pIdx = 1;
+    const nowTime = Date.now().toString().slice(-4);
+
+    matchedSessions.forEach((session, i) => {
+      const regId = `REG-${nowTime}${Math.floor(Math.random() * 90 + 10)}-${i + 1}`;
+      placeholders.push(`($${pIdx}, $${pIdx + 1}, $${pIdx + 2}, $${pIdx + 3}, $${pIdx + 4}, $${pIdx + 5}, $${pIdx + 6}, $${pIdx + 7})`);
+      values.push(regId, student.id, student.name, student.class_name, session.id, session.title, session.venue, session.time_slot);
+      pIdx += 8;
+    });
+
+    const insertQuery = `
+      INSERT INTO public.confluence_registrations (id, student_id, student_name, student_class, session_id, session_title, venue, time_slot)
+      VALUES ${placeholders.join(', ')}
+      RETURNING id, student_id as "studentId", student_name as "studentName", student_class as "studentClass", session_id as "sessionId", session_title as "sessionTitle", venue, time_slot as "timeSlot", registered_at as "registeredAt";
+    `;
+
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+      const { rows: created } = await client.query(insertQuery, values);
+      await client.query('COMMIT');
+      return { student, created };
+    } catch (txErr) {
+      await client.query('ROLLBACK');
+      throw txErr;
+    } finally {
+      client.release();
+    }
 }
 
 async function deleteRegistration(id) {
