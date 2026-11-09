@@ -155,11 +155,6 @@
 
       <!-- Action Buttons & Navigation -->
       <div class="flex items-center gap-1.5 sm:gap-3">
-        <button id="btn-view-poster" class="hidden sm:inline-flex items-center gap-1.5 text-xs font-medium text-slate-300 hover:text-white bg-slate-800/80 hover:bg-slate-700 px-3 py-2 rounded-lg border border-slate-700 transition">
-          <i data-lucide="image" class="w-4 h-4 text-amber-400"></i>
-          <span>View Poster</span>
-        </button>
-
         <!-- View Switcher (Public Registration vs Admin Panel) -->
         <div class="bg-slate-900 p-0.5 sm:p-1 rounded-xl border border-cardBorder flex items-center gap-0.5 sm:gap-1">
           <button id="nav-registration-btn" class="flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3.5 py-1.5 rounded-lg text-[11px] sm:text-xs font-semibold bg-brand-600 text-white shadow-sm transition">
@@ -838,21 +833,6 @@
           <button type="submit" class="px-5 py-2 bg-brand-600 hover:bg-brand-500 text-white rounded-xl font-bold transition">Save Session</button>
         </div>
       </form>
-    </div>
-  </div>
-
-  <!-- MODAL 3: VIEW OFFICIAL POSTER MODAL -->
-  <div id="modal-poster" class="fixed inset-0 z-50 bg-black/90 backdrop-blur-md hidden items-center justify-center p-4">
-    <div class="relative max-w-lg w-full max-h-[90vh] flex flex-col bg-slate-900 border border-cardBorder rounded-2xl overflow-hidden shadow-2xl">
-      <div class="p-3 bg-slate-950 flex items-center justify-between border-b border-cardBorder">
-        <span class="text-xs font-bold text-brand-400">CONFLUENCE Official Event Schedule</span>
-        <button id="btn-close-poster" class="text-slate-400 hover:text-white p-1">
-          <i data-lucide="x" class="w-4 h-4"></i>
-        </button>
-      </div>
-      <div class="overflow-y-auto p-2">
-        <img src="/confluence-poster.jpg" alt="Confluence Schedule Poster" class="w-full rounded-xl object-contain shadow-lg" onerror="this.src='https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=800&auto=format&fit=crop&q=80'" />
-      </div>
     </div>
   </div>
 

@@ -23,7 +23,6 @@ const elements = {
   navAdminBtn: document.getElementById('nav-admin-btn'),
   viewReg: document.getElementById('view-registration'),
   viewAdmin: document.getElementById('view-admin'),
-  btnViewPoster: document.getElementById('btn-view-poster'),
 
   // Hero Stats
   statHeroSessions: document.getElementById('stat-hero-sessions'),
@@ -73,8 +72,6 @@ const elements = {
   // Modals
   modalPass: document.getElementById('modal-pass'),
   modalSessionForm: document.getElementById('modal-session-form'),
-  modalPoster: document.getElementById('modal-poster'),
-  btnClosePoster: document.getElementById('btn-close-poster'),
 
   // Pass Modal Details
   passIdBadge: document.getElementById('pass-id-badge'),
@@ -402,6 +399,30 @@ function renderSessionsChecklist() {
   if (mobileContainer) mobileContainer.innerHTML = '';
 
   if (!state.activeStudent) {
+    return;
+  }
+
+  if (state.sessions.length === 0) {
+    const emptyMsg = `
+      <div class="py-10 px-4 text-center">
+        <div class="w-12 h-12 rounded-2xl bg-amber-500/10 text-amber-400 border border-amber-500/20 flex items-center justify-center mx-auto mb-3">
+          <i data-lucide="calendar-x" class="w-6 h-6"></i>
+        </div>
+        <div class="text-sm font-bold text-white mb-1">No Sessions Created Yet</div>
+        <p class="text-xs text-slate-400 max-w-sm mx-auto mb-3">
+          No conclave sessions are currently in the system. Use the Admin Panel to create sessions.
+        </p>
+        <button type="button" onclick="elements.navAdminBtn.click()" class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-brand-600 hover:bg-brand-500 text-white text-xs font-bold transition">
+          <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+          <span>Add Session in Admin Panel</span>
+        </button>
+      </div>
+    `;
+    if (tbody) tbody.innerHTML = `<tr><td colspan="6">${emptyMsg}</td></tr>`;
+    if (mobileContainer) mobileContainer.innerHTML = emptyMsg;
+    if (tbody) lucide.createIcons({ root: tbody });
+    if (mobileContainer) lucide.createIcons({ root: mobileContainer });
+    updateSelectedCountUI();
     return;
   }
 
@@ -1635,19 +1656,6 @@ async function uploadExcelFile(file) {
     statusEl.textContent = '✗ Network error uploading file.';
   }
 }
-
-// -------------------------------------------------------------
-// POSTER MODAL
-// -------------------------------------------------------------
-elements.btnViewPoster.addEventListener('click', () => {
-  elements.modalPoster.classList.remove('hidden');
-  elements.modalPoster.classList.add('flex');
-});
-
-elements.btnClosePoster.addEventListener('click', () => {
-  elements.modalPoster.classList.add('hidden');
-  elements.modalPoster.classList.remove('flex');
-});
 
 // -------------------------------------------------------------
 // NAVIGATION VIEW SWITCHER
