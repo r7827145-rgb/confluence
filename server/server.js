@@ -131,7 +131,12 @@ app.post('/api/students/upload', upload.single('file'), async (req, res) => {
       return res.status(400).json({ error: 'The uploaded file contains no data rows.' });
     }
 
-    const { addedCount, sample } = await pgdb.bulkInsertStudents(rawRows);
+    // Determine fallback class from filename (e.g. C2C.xlsx -> C2C, c1b.xlsx -> C1B) or sheet name
+    const rawFilename = (req.file.originalname || '').replace(/\.[^/.]+$/, "").trim();
+    const classMatch = rawFilename.match(/c[1-2][a-c]/i) || firstSheetName.match(/c[1-2][a-c]/i);
+    const fallbackClass = classMatch ? classMatch[0].toUpperCase() : (req.body.className || 'General');
+
+    const { addedCount, sample } = await pgdb.bulkInsertStudents(rawRows, fallbackClass);
     const allStudents = await pgdb.getStudents();
 
     res.json({

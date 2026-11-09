@@ -206,7 +206,7 @@ async function createStudent(data) {
   return rows[0];
 }
 
-async function bulkInsertStudents(rawRows) {
+async function bulkInsertStudents(rawRows, fallbackClass = 'General') {
   const client = await pool.connect();
   let addedCount = 0;
   const sample = [];
@@ -223,12 +223,12 @@ async function bulkInsertStudents(rawRows) {
       const row = rawRows[i];
       const keys = Object.keys(row);
       const nameKey = keys.find(k => /name|student\s*name/i.test(k)) || keys[0];
-      const classKey = keys.find(k => /class|grade|div|batch|division/i.test(k)) || keys[1];
-      const rollKey = keys.find(k => /roll|reg|id|number/i.test(k));
+      const classKey = keys.find(k => /class|grade|div|batch|division/i.test(k));
+      const rollKey = keys.find(k => /roll|reg|id|sl\s*no|number/i.test(k));
       const phoneKey = keys.find(k => /phone|mobile|contact/i.test(k));
 
       const nameVal = row[nameKey] ? String(row[nameKey]).trim() : '';
-      const classVal = row[classKey] ? String(row[classKey]).trim() : 'General';
+      const classVal = (classKey && row[classKey] && classKey !== nameKey) ? String(row[classKey]).trim() : (fallbackClass || 'General');
       const rollVal = (rollKey && row[rollKey]) ? String(row[rollKey]).trim() : String(i + 1);
       const phoneVal = (phoneKey && row[phoneKey]) ? String(row[phoneKey]).trim() : '';
 
