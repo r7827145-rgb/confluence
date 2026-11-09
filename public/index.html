@@ -2,7 +2,10 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#090D16">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <title>CONFLUENCE - Caliph Commerce Domain Conclave Registration Portal</title>
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='45' fill='%23EA580C'/><path d='M30 50 A20 20 0 0 1 70 50 A10 10 0 0 0 50 40' stroke='white' stroke-width='6' fill='none'/></svg>">
   
@@ -87,6 +90,39 @@
     .animate-pulse-subtle {
       animation: pulse-subtle 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
     }
+    /* Mobile-first touch improvements */
+    * {
+      -webkit-tap-highlight-color: transparent;
+    }
+    button, input, select, a {
+      touch-action: manipulation;
+    }
+    /* Ticket pass perforation notches */
+    .ticket-notch-left {
+      position: absolute;
+      left: -12px;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: #090D16;
+    }
+    .ticket-notch-right {
+      position: absolute;
+      right: -12px;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: #090D16;
+    }
+    /* Hide scrollbar for Chrome, Safari and Opera */
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    /* Hide scrollbar for IE, Edge and Firefox */
+    .no-scrollbar {
+      -ms-overflow-style: none;  /* IE and Edge */
+      scrollbar-width: none;  /* Firefox */
+    }
   </style>
 </head>
 <body class="bg-darkBg text-slate-100 min-h-screen flex flex-col selection:bg-brand-600 selection:text-white">
@@ -95,22 +131,22 @@
   <div id="toast-container" class="fixed top-5 right-5 z-50 flex flex-col gap-2 max-w-md w-full pointer-events-none"></div>
 
   <!-- NAVIGATION HEADER -->
-  <header class="sticky top-0 z-40 bg-darkBg/90 backdrop-blur-md border-b border-cardBorder">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
+  <header class="sticky top-0 z-40 bg-darkBg/95 backdrop-blur-md border-b border-cardBorder">
+    <div class="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 h-16 sm:h-20 flex items-center justify-between">
       
       <!-- Brand & Conclave Identity -->
-      <div class="flex items-center gap-3">
-        <div class="w-12 h-12 rounded-xl bg-gradient-to-tr from-brand-700 to-amber-500 p-0.5 shadow-lg shadow-brand-600/30">
+      <div class="flex items-center gap-2.5 sm:gap-3">
+        <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-gradient-to-tr from-brand-700 to-amber-500 p-0.5 shadow-lg shadow-brand-600/30 flex-shrink-0">
           <div class="w-full h-full bg-darkBg rounded-[10px] flex items-center justify-center">
-            <i data-lucide="sparkles" class="w-6 h-6 text-brand-500"></i>
+            <i data-lucide="sparkles" class="w-5 h-5 sm:w-6 sm:h-6 text-brand-500"></i>
           </div>
         </div>
         <div>
-          <div class="flex items-center gap-2">
-            <span class="text-xs uppercase tracking-widest font-bold text-brand-500">CALIPH DOMAIN CONCLAVE</span>
-            <span class="text-[10px] bg-brand-500/10 text-brand-400 border border-brand-500/20 px-2 py-0.5 rounded-full font-mono">2026</span>
+          <div class="flex items-center gap-1.5 sm:gap-2">
+            <span class="text-[10px] sm:text-xs uppercase tracking-wider sm:tracking-widest font-bold text-brand-500">CALIPH CONCLAVE</span>
+            <span class="text-[9px] sm:text-[10px] bg-brand-500/10 text-brand-400 border border-brand-500/20 px-1.5 py-0.2 sm:px-2 sm:py-0.5 rounded-full font-mono">2026</span>
           </div>
-          <h1 class="text-xl sm:text-2xl font-black font-heading tracking-tight text-white flex items-center gap-1.5">
+          <h1 class="text-base sm:text-2xl font-black font-heading tracking-tight text-white flex items-center gap-1.5">
             CONFLUENCE
             <span class="text-xs font-normal text-slate-400 hidden sm:inline-block">| Commerce Domain Conclave</span>
           </h1>
@@ -118,21 +154,21 @@
       </div>
 
       <!-- Action Buttons & Navigation -->
-      <div class="flex items-center gap-2 sm:gap-3">
+      <div class="flex items-center gap-1.5 sm:gap-3">
         <button id="btn-view-poster" class="hidden sm:inline-flex items-center gap-1.5 text-xs font-medium text-slate-300 hover:text-white bg-slate-800/80 hover:bg-slate-700 px-3 py-2 rounded-lg border border-slate-700 transition">
           <i data-lucide="image" class="w-4 h-4 text-amber-400"></i>
           <span>View Poster</span>
         </button>
 
         <!-- View Switcher (Public Registration vs Admin Panel) -->
-        <div class="bg-slate-900 p-1 rounded-xl border border-cardBorder flex items-center gap-1">
-          <button id="nav-registration-btn" class="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-brand-600 text-white shadow-sm transition">
-            <i data-lucide="user-check" class="w-4 h-4"></i>
-            <span>Registration</span>
+        <div class="bg-slate-900 p-0.5 sm:p-1 rounded-xl border border-cardBorder flex items-center gap-0.5 sm:gap-1">
+          <button id="nav-registration-btn" class="flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3.5 py-1.5 rounded-lg text-[11px] sm:text-xs font-semibold bg-brand-600 text-white shadow-sm transition">
+            <i data-lucide="user-check" class="w-3.5 h-3.5 sm:w-4 sm:h-4"></i>
+            <span>Register</span>
           </button>
-          <button id="nav-admin-btn" class="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold text-slate-400 hover:text-white hover:bg-slate-800 transition">
-            <i data-lucide="shield" class="w-4 h-4"></i>
-            <span>Admin Panel</span>
+          <button id="nav-admin-btn" class="flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3.5 py-1.5 rounded-lg text-[11px] sm:text-xs font-semibold text-slate-400 hover:text-white hover:bg-slate-800 transition">
+            <i data-lucide="shield" class="w-3.5 h-3.5 sm:w-4 sm:h-4"></i>
+            <span>Admin</span>
           </button>
         </div>
       </div>
@@ -141,7 +177,7 @@
   </header>
 
   <!-- MAIN APP CONTAINER -->
-  <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+  <main class="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6 pb-28 md:pb-6">
 
     <!-- ========================================================================= -->
     <!-- VIEW 1: REGISTRATION PORTAL (STUDENT & PUBLIC VIEW)                        -->
@@ -240,8 +276,8 @@
           </div>
 
           <!-- Quick Suggestion Pills -->
-          <div id="quick-student-chips" class="flex flex-wrap items-center gap-2 mt-3 text-xs">
-            <span class="text-slate-500 text-[11px] font-medium">Quick Select:</span>
+          <div id="quick-student-chips" class="flex items-center gap-2 mt-3 text-xs overflow-x-auto no-scrollbar pb-1 flex-nowrap sm:flex-wrap">
+            <span class="text-slate-500 text-[11px] font-medium flex-shrink-0">Quick Select:</span>
             <!-- Populated via JS -->
           </div>
 
@@ -319,7 +355,8 @@
 
         <!-- SESSIONS CHECKLIST CONTAINER (VISIBLE ONCE STUDENT IS SELECTED) -->
         <div id="sessions-table-wrapper" class="hidden bg-cardBg rounded-2xl border border-cardBorder overflow-hidden shadow-xl">
-          <div class="overflow-x-auto">
+          <!-- Desktop Table View (md and above) -->
+          <div class="hidden md:block overflow-x-auto">
             <table class="w-full text-left text-xs sm:text-sm">
               <thead class="bg-slate-900/90 text-slate-300 uppercase text-[11px] font-bold border-b border-cardBorder tracking-wider">
                 <tr>
@@ -339,28 +376,35 @@
             </table>
           </div>
 
+          <!-- Mobile Phone Killer Touch Cards View (visible on mobile only) -->
+          <div id="sessions-mobile-cards" class="md:hidden space-y-3 p-2.5 sm:p-3">
+            <!-- Mobile touch cards injected via JS -->
+          </div>
+
           <!-- Bottom Sticky Action Bar for Registration -->
-          <div class="bg-slate-900/95 border-t border-cardBorder p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div class="flex items-center gap-3">
-              <div class="w-10 h-10 rounded-xl bg-brand-600/20 border border-brand-500/30 text-brand-400 flex items-center justify-center font-bold">
-                <i data-lucide="check-square" class="w-5 h-5"></i>
-              </div>
-              <div>
-                <div class="text-xs text-slate-400">Registration Summary:</div>
-                <div class="text-sm font-extrabold text-white">
-                  <span id="selected-sessions-count" class="text-brand-400 text-base font-mono">0</span> sessions ticked for <span id="bar-student-name" class="text-brand-300">Selected Student</span>
+          <div id="registration-action-bar" class="fixed md:static bottom-0 left-0 right-0 z-40 bg-slate-950/95 md:bg-slate-900/95 backdrop-blur-xl border-t border-cardBorder p-3 sm:p-5 shadow-[0_-10px_35px_rgba(0,0,0,0.6)] md:shadow-none transition-all duration-300">
+            <div class="max-w-7xl mx-auto flex items-center justify-between gap-3">
+              <div class="flex items-center gap-2.5 min-w-0">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-600 to-amber-500 text-white flex-shrink-0 flex items-center justify-center font-black shadow-md shadow-brand-600/30">
+                  <span id="selected-sessions-count" class="text-sm font-mono">0</span>
+                </div>
+                <div class="truncate">
+                  <div class="text-[11px] text-slate-400 font-medium">Selected for <span id="bar-student-name" class="text-brand-300 font-bold truncate">Student</span></div>
+                  <div class="text-xs font-bold text-white flex items-center gap-1">
+                    <span id="bar-status-text">Tick sessions above</span>
+                  </div>
                 </div>
               </div>
-            </div>
 
-            <div class="flex items-center gap-2">
-              <button id="btn-uncheck-all" class="px-3.5 py-2.5 rounded-xl text-xs font-semibold text-slate-400 hover:text-white hover:bg-slate-800 transition">
-                Clear Ticks
-              </button>
-              <button id="btn-batch-register" class="px-6 py-3 rounded-xl text-xs sm:text-sm font-extrabold bg-gradient-to-r from-brand-600 to-amber-600 hover:from-brand-500 hover:to-amber-500 text-white shadow-lg shadow-brand-600/30 hover:shadow-brand-600/50 active:scale-[0.99] transition flex items-center justify-center gap-2">
-                <i data-lucide="ticket" class="w-4 h-4"></i>
-                <span id="btn-register-label">REGISTER SELECTED SESSIONS</span>
-              </button>
+              <div class="flex items-center gap-2 flex-shrink-0">
+                <button id="btn-uncheck-all" class="px-2.5 sm:px-3.5 py-2.5 rounded-xl text-xs font-semibold text-slate-400 hover:text-white hover:bg-slate-800 transition active:scale-95">
+                  Clear
+                </button>
+                <button id="btn-batch-register" class="px-4 sm:px-6 py-2.5 sm:py-3 rounded-xl text-xs sm:text-sm font-extrabold bg-gradient-to-r from-brand-600 to-amber-600 hover:from-brand-500 hover:to-amber-500 text-white shadow-lg shadow-brand-600/30 hover:shadow-brand-600/50 active:scale-95 transition flex items-center justify-center gap-2 whitespace-nowrap">
+                  <i data-lucide="ticket" class="w-4 h-4"></i>
+                  <span id="btn-register-label">REGISTER</span>
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -659,28 +703,35 @@
   <!-- ========================================================================= -->
 
   <!-- MODAL 1: REGISTRATION SUCCESS TICKET PASS -->
-  <div id="modal-pass" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm hidden items-center justify-center p-4">
-    <div class="bg-slate-900 border border-brand-500/40 rounded-3xl max-w-md w-full overflow-hidden shadow-2xl glow-orange animate-scale-up">
+  <div id="modal-pass" class="fixed inset-0 z-50 bg-black/85 backdrop-blur-md hidden items-center justify-center p-3 sm:p-4 overflow-y-auto">
+    <div class="bg-slate-900 border border-brand-500/40 rounded-3xl max-w-md w-full overflow-hidden shadow-2xl glow-orange animate-scale-up relative my-auto">
       <!-- Pass Header -->
-      <div class="bg-gradient-to-r from-brand-700 to-amber-600 p-5 text-white relative">
+      <div class="bg-gradient-to-r from-brand-700 via-brand-600 to-amber-600 p-5 text-white relative">
         <div class="flex items-center justify-between">
           <div class="flex items-center gap-2">
             <i data-lucide="sparkles" class="w-5 h-5 text-white"></i>
             <span class="text-xs uppercase font-extrabold tracking-widest">CONFLUENCE PASS</span>
           </div>
-          <span class="text-[11px] bg-black/20 backdrop-blur px-2 py-0.5 rounded-full font-mono font-bold" id="pass-id-badge">REG-0000</span>
+          <span class="text-[11px] bg-black/30 backdrop-blur px-2.5 py-0.5 rounded-full font-mono font-bold border border-white/20" id="pass-id-badge">REG-0000</span>
         </div>
         <h4 class="text-xl font-black font-heading mt-2">Registration Confirmed!</h4>
         <p class="text-xs text-white/80">Caliph Commerce Domain Conclave • 09 Nov 2026</p>
       </div>
 
+      <!-- Ticket Perforation Cutout Effect -->
+      <div class="relative h-4 bg-slate-900 flex items-center justify-between px-2 overflow-hidden">
+        <div class="ticket-notch-left"></div>
+        <div class="w-full border-b-2 border-dashed border-slate-700/80 mx-4"></div>
+        <div class="ticket-notch-right"></div>
+      </div>
+
       <!-- Ticket Body -->
-      <div class="p-6 space-y-4">
+      <div class="p-5 sm:p-6 space-y-4">
         <!-- Student Info Box -->
-        <div class="bg-slate-950/70 rounded-2xl p-4 border border-slate-800">
-          <div class="text-[11px] uppercase font-bold text-slate-400">Student Attendee</div>
+        <div class="bg-slate-950/80 rounded-2xl p-3.5 border border-slate-800">
+          <div class="text-[10px] uppercase font-bold text-slate-400">Student Attendee</div>
           <div class="text-lg font-bold text-white" id="pass-student-name">Student Name</div>
-          <div class="text-xs text-brand-400 font-medium" id="pass-student-class">Class</div>
+          <div class="text-xs text-brand-400 font-bold" id="pass-student-class">Class</div>
         </div>
 
         <!-- Sessions Details Container (Supports single or multiple ticked sessions) -->
@@ -689,18 +740,19 @@
         </div>
 
         <!-- QR Code Display -->
-        <div class="flex items-center justify-center p-3 bg-white rounded-2xl w-32 h-32 mx-auto">
-          <div id="pass-qrcode"></div>
+        <div class="flex flex-col items-center justify-center p-3 bg-white rounded-2xl w-36 mx-auto shadow-inner">
+          <div id="pass-qrcode" class="p-1"></div>
+          <div class="text-[9px] font-mono font-bold text-slate-800 mt-1 tracking-wider uppercase">ENTRY PASS</div>
         </div>
-        <p class="text-center text-[11px] text-slate-500">Show this pass or QR at the session entrance</p>
+        <p class="text-center text-[11px] text-slate-400">Present this QR pass at the conclave registration desk</p>
 
         <!-- Pass Action Buttons -->
         <div class="flex gap-2 pt-2">
-          <button id="btn-print-pass" class="flex-1 py-2.5 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5">
+          <button id="btn-print-pass" class="flex-1 py-3 bg-slate-800 hover:bg-slate-700 active:scale-95 text-white rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 border border-slate-700">
             <i data-lucide="printer" class="w-4 h-4"></i>
             <span>Print Pass</span>
           </button>
-          <button id="btn-close-pass" class="flex-1 py-2.5 bg-brand-600 hover:bg-brand-500 text-white rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-sm shadow-brand-600/30">
+          <button id="btn-close-pass" class="flex-1 py-3 bg-gradient-to-r from-brand-600 to-amber-600 hover:from-brand-500 hover:to-amber-500 active:scale-95 text-white rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-lg shadow-brand-600/30">
             <span>Done</span>
           </button>
         </div>

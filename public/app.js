@@ -49,6 +49,7 @@ const elements = {
   noStudentPlaceholder: document.getElementById('no-student-placeholder'),
   sessionsTableWrapper: document.getElementById('sessions-table-wrapper'),
   sessionsChecklistTbody: document.getElementById('sessions-checklist-tbody'),
+  sessionsMobileCards: document.getElementById('sessions-mobile-cards'),
   selectedSessionsCount: document.getElementById('selected-sessions-count'),
   barStudentName: document.getElementById('bar-student-name'),
   btnUncheckAll: document.getElementById('btn-uncheck-all'),
@@ -396,7 +397,9 @@ function updateActiveStudentRegistrations() {
 // -------------------------------------------------------------
 function renderSessionsChecklist() {
   const tbody = elements.sessionsChecklistTbody;
-  tbody.innerHTML = '';
+  const mobileContainer = elements.sessionsMobileCards;
+  if (tbody) tbody.innerHTML = '';
+  if (mobileContainer) mobileContainer.innerHTML = '';
 
   if (!state.activeStudent) {
     return;
@@ -407,6 +410,17 @@ function renderSessionsChecklist() {
     filtered = filtered.filter(s => s.venue.toLowerCase().includes('majlis') || (s.category && s.category.toLowerCase().includes('majlis')));
   } else if (state.activeFilter === 'Incubator') {
     filtered = filtered.filter(s => s.venue.toLowerCase().includes('incubator') || (s.category && s.category.toLowerCase().includes('incubator')));
+  }
+
+  if (filtered.length === 0) {
+    if (tbody) {
+      tbody.innerHTML = `<tr><td colspan="6" class="text-center py-8 text-slate-400 text-xs">No sessions match the selected filter.</td></tr>`;
+    }
+    if (mobileContainer) {
+      mobileContainer.innerHTML = `<div class="text-center py-8 text-slate-400 text-xs bg-slate-900/60 rounded-xl p-4">No sessions match the selected filter.</div>`;
+    }
+    updateSelectedCountUI();
+    return;
   }
 
   // Get active student's currently registered session IDs
@@ -449,145 +463,264 @@ function renderSessionsChecklist() {
 
     // RULE: If registrar chooses one event, other event at the same time slot will disappear!
     if (isClashed && state.clashMode === 'disappear') {
-      return; // Disappears completely from the table!
+      return; // Disappears completely from both table and mobile cards!
     }
 
-    const tr = document.createElement('tr');
-    tr.className = `transition-colors duration-150 ${
-      isClashed
-        ? 'opacity-40 bg-rose-950/20 cursor-not-allowed border-l-2 border-l-rose-500/50'
-        : isEnrolled 
-        ? 'bg-emerald-950/20' 
-        : isTicked 
-        ? 'bg-brand-950/40 border-l-4 border-l-brand-500' 
-        : isFull 
-        ? 'opacity-60 bg-slate-950/30' 
-        : 'hover:bg-slate-900/50'
-    }`;
-
-    // Tick Column Content
-    let tickHtml = '';
-    if (isClashed) {
-      tickHtml = `
-        <div class="flex flex-col items-center justify-center cursor-not-allowed" title="Cut out: Clashed with ${occupier.session.title}">
-          <span class="px-2 py-0.5 rounded bg-rose-950/90 text-rose-300 border border-rose-500/50 flex items-center gap-1 text-[10px] font-bold">
-            <i data-lucide="scissors" class="w-3 h-3 text-rose-400"></i>
-            <span>CUT</span>
-          </span>
-          <span class="text-[9px] text-rose-400 font-semibold mt-0.5">Clashed</span>
-        </div>
-      `;
-    } else if (isEnrolled) {
-      tickHtml = `
-        <div class="flex flex-col items-center justify-center">
-          <span class="w-6 h-6 rounded-lg bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 flex items-center justify-center text-xs font-bold" title="Already Registered">
-            <i data-lucide="check" class="w-4 h-4"></i>
-          </span>
-          <span class="text-[9px] text-emerald-400 font-bold mt-0.5 uppercase tracking-tighter">Enrolled</span>
-        </div>
-      `;
-    } else if (isFull) {
-      tickHtml = `
-        <div class="flex flex-col items-center justify-center cursor-not-allowed" onclick="showToast('⚠️ Quota Reached: This session is fully booked!', 'error')" title="Quota Full">
-          <span class="w-6 h-6 rounded-lg bg-rose-500/20 text-rose-400 border border-rose-500/30 flex items-center justify-center text-xs">
-            <i data-lucide="lock" class="w-3.5 h-3.5"></i>
-          </span>
-          <span class="text-[9px] text-rose-400 font-bold mt-0.5 uppercase tracking-tighter">Full</span>
-        </div>
-      `;
-    } else {
-      tickHtml = `
-        <div class="flex items-center justify-center">
-          <label class="relative flex items-center justify-center cursor-pointer p-1">
-            <input 
-              type="checkbox" 
-              class="session-checkbox w-5 h-5 rounded-md border-2 border-slate-600 bg-slate-900 text-brand-600 focus:ring-brand-500 focus:ring-offset-0 transition cursor-pointer checked:border-brand-500 checked:bg-brand-600"
-              data-session-id="${session.id}"
-              ${isTicked ? 'checked' : ''}
-            />
-          </label>
-        </div>
-      `;
-    }
-
-    // Capacity indicator
     const progressWidth = `${session.percentFilled}%`;
     const progressColor = isFull ? 'bg-rose-500' : session.percentFilled > 80 ? 'bg-amber-500' : 'bg-brand-500';
 
-    tr.innerHTML = `
-      <td class="py-3 px-3 text-center align-middle">
-        ${tickHtml}
-      </td>
-      <td class="py-3 px-4 align-middle">
-        <div class="font-bold text-sm sm:text-base ${isClashed ? 'text-slate-500 line-through decoration-rose-500 decoration-2' : 'text-white'}">
-          ${session.title}
-        </div>
-        ${isClashed ? `
-          <div class="text-[11px] text-rose-400 font-medium mt-0.5 flex items-center gap-1">
-            <i data-lucide="alert-triangle" class="w-3 h-3"></i>
-            <span>Cut out: Clashed with chosen "${occupier.session.title}" (${session.timeSlot})</span>
-          </div>
-        ` : (session.subtitle ? `<div class="text-[11px] text-slate-400 leading-snug mt-0.5">${session.subtitle}</div>` : '')}
-      </td>
-      <td class="py-3 px-4 align-middle">
-        <span class="px-2.5 py-1 rounded-md text-[11px] font-semibold border ${venueColors[session.venue] || 'bg-slate-800 text-slate-300 border-slate-700'}">
-          ${session.venue}
-        </span>
-      </td>
-      <td class="py-3 px-4 align-middle font-mono font-bold text-brand-400 text-xs">
-        <div class="flex items-center gap-1.5">
-          <i data-lucide="clock" class="w-3.5 h-3.5"></i>
-          <span>${session.timeSlot}</span>
-        </div>
-      </td>
-      <td class="py-3 px-4 align-middle">
-        <div class="text-xs font-bold text-slate-200">${session.speaker || 'TBD'}</div>
-        <div class="text-[10px] text-slate-400">${session.speakerRole || ''}</div>
-      </td>
-      <td class="py-3 px-4 align-middle text-center min-w-[140px]">
-        <div class="text-xs font-mono font-semibold ${isFull ? 'text-rose-400' : 'text-slate-300'}">
-          <strong>${session.registeredCount}</strong> / ${session.quota} filled
-        </div>
-        <div class="w-full bg-slate-900 rounded-full h-1.5 overflow-hidden border border-slate-800 mt-1">
-          <div class="${progressColor} h-full rounded-full transition-all" style="width: ${progressWidth}"></div>
-        </div>
-        <div class="text-[10px] mt-0.5 ${isFull ? 'text-rose-400 font-bold' : 'text-emerald-400'}">
-          ${isFull ? 'Quota Full' : `${session.remainingQuota} seats left`}
-        </div>
-      </td>
-    `;
+    // 1. DESKTOP TABLE ROW
+    if (tbody) {
+      const tr = document.createElement('tr');
+      tr.className = `transition-colors duration-150 ${
+        isClashed
+          ? 'opacity-40 bg-rose-950/20 cursor-not-allowed border-l-2 border-l-rose-500/50'
+          : isEnrolled 
+          ? 'bg-emerald-950/20' 
+          : isTicked 
+          ? 'bg-brand-950/40 border-l-4 border-l-brand-500' 
+          : isFull 
+          ? 'opacity-60 bg-slate-950/30' 
+          : 'hover:bg-slate-900/50'
+      }`;
 
-    // Click anywhere on available row to toggle checkbox
-    if (!isEnrolled && !isFull && !isClashed) {
-      tr.classList.add('cursor-pointer');
-      tr.addEventListener('click', (e) => {
-        if (e.target.tagName !== 'INPUT') {
-          const checkbox = tr.querySelector('.session-checkbox');
-          if (checkbox) {
-            checkbox.checked = !checkbox.checked;
-            handleToggleSession(session.id, checkbox.checked);
+      let tickHtml = '';
+      if (isClashed) {
+        tickHtml = `
+          <div class="flex flex-col items-center justify-center cursor-not-allowed" title="Cut out: Clashed with ${occupier.session.title}">
+            <span class="px-2 py-0.5 rounded bg-rose-950/90 text-rose-300 border border-rose-500/50 flex items-center gap-1 text-[10px] font-bold">
+              <i data-lucide="scissors" class="w-3 h-3 text-rose-400"></i>
+              <span>CUT</span>
+            </span>
+            <span class="text-[9px] text-rose-400 font-semibold mt-0.5">Clashed</span>
+          </div>
+        `;
+      } else if (isEnrolled) {
+        tickHtml = `
+          <div class="flex flex-col items-center justify-center">
+            <span class="w-6 h-6 rounded-lg bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 flex items-center justify-center text-xs font-bold" title="Already Registered">
+              <i data-lucide="check" class="w-4 h-4"></i>
+            </span>
+            <span class="text-[9px] text-emerald-400 font-bold mt-0.5 uppercase tracking-tighter">Enrolled</span>
+          </div>
+        `;
+      } else if (isFull) {
+        tickHtml = `
+          <div class="flex flex-col items-center justify-center cursor-not-allowed" onclick="showToast('⚠️ Quota Reached: This session is fully booked!', 'error')" title="Quota Full">
+            <span class="w-6 h-6 rounded-lg bg-rose-500/20 text-rose-400 border border-rose-500/30 flex items-center justify-center text-xs">
+              <i data-lucide="lock" class="w-3.5 h-3.5"></i>
+            </span>
+            <span class="text-[9px] text-rose-400 font-bold mt-0.5 uppercase tracking-tighter">Full</span>
+          </div>
+        `;
+      } else {
+        tickHtml = `
+          <div class="flex items-center justify-center">
+            <label class="relative flex items-center justify-center cursor-pointer p-1">
+              <input 
+                type="checkbox" 
+                class="session-checkbox w-5 h-5 rounded-md border-2 border-slate-600 bg-slate-900 text-brand-600 focus:ring-brand-500 focus:ring-offset-0 transition cursor-pointer checked:border-brand-500 checked:bg-brand-600"
+                data-session-id="${session.id}"
+                ${isTicked ? 'checked' : ''}
+              />
+            </label>
+          </div>
+        `;
+      }
+
+      tr.innerHTML = `
+        <td class="py-3 px-3 text-center align-middle">
+          ${tickHtml}
+        </td>
+        <td class="py-3 px-4 align-middle">
+          <div class="font-bold text-sm sm:text-base ${isClashed ? 'text-slate-500 line-through decoration-rose-500 decoration-2' : 'text-white'}">
+            ${session.title}
+          </div>
+          ${isClashed ? `
+            <div class="text-[11px] text-rose-400 font-medium mt-0.5 flex items-center gap-1">
+              <i data-lucide="alert-triangle" class="w-3 h-3"></i>
+              <span>Cut out: Clashed with chosen "${occupier.session.title}" (${session.timeSlot})</span>
+            </div>
+          ` : (session.subtitle ? `<div class="text-[11px] text-slate-400 leading-snug mt-0.5">${session.subtitle}</div>` : '')}
+        </td>
+        <td class="py-3 px-4 align-middle">
+          <span class="px-2.5 py-1 rounded-md text-[11px] font-semibold border ${venueColors[session.venue] || 'bg-slate-800 text-slate-300 border-slate-700'}">
+            ${session.venue}
+          </span>
+        </td>
+        <td class="py-3 px-4 align-middle font-mono font-bold text-brand-400 text-xs">
+          <div class="flex items-center gap-1.5">
+            <i data-lucide="clock" class="w-3.5 h-3.5"></i>
+            <span>${session.timeSlot}</span>
+          </div>
+        </td>
+        <td class="py-3 px-4 align-middle">
+          <div class="text-xs font-bold text-slate-200">${session.speaker || 'TBD'}</div>
+          <div class="text-[10px] text-slate-400">${session.speakerRole || ''}</div>
+        </td>
+        <td class="py-3 px-4 align-middle text-center min-w-[140px]">
+          <div class="text-xs font-mono font-semibold ${isFull ? 'text-rose-400' : 'text-slate-300'}">
+            <strong>${session.registeredCount}</strong> / ${session.quota} filled
+          </div>
+          <div class="w-full bg-slate-900 rounded-full h-1.5 overflow-hidden border border-slate-800 mt-1">
+            <div class="${progressColor} h-full rounded-full transition-all" style="width: ${progressWidth}"></div>
+          </div>
+          <div class="text-[10px] mt-0.5 ${isFull ? 'text-rose-400 font-bold' : 'text-emerald-400'}">
+            ${isFull ? 'Quota Full' : `${session.remainingQuota} seats left`}
+          </div>
+        </td>
+      `;
+
+      if (!isEnrolled && !isFull && !isClashed) {
+        tr.classList.add('cursor-pointer');
+        tr.addEventListener('click', (e) => {
+          if (e.target.tagName !== 'INPUT') {
+            const checkbox = tr.querySelector('.session-checkbox');
+            if (checkbox) {
+              checkbox.checked = !checkbox.checked;
+              handleToggleSession(session.id, checkbox.checked);
+            }
           }
-        }
-      });
-    } else if (isClashed) {
-      tr.addEventListener('click', () => {
-        showToast(`✂️ This event is cut because you selected "${occupier.session.title}" at ${session.timeSlot}. Untick that one first to switch.`, "warning");
-      });
+        });
+      } else if (isClashed) {
+        tr.addEventListener('click', () => {
+          showToast(`✂️ This event is cut because you selected "${occupier.session.title}" at ${session.timeSlot}. Untick that one first to switch.`, "warning");
+        });
+      }
+
+      tbody.appendChild(tr);
     }
 
-    tbody.appendChild(tr);
+    // 2. MOBILE PHONE KILLER INTERACTIVE CARD
+    if (mobileContainer) {
+      const card = document.createElement('div');
+      card.className = `p-4 rounded-2xl border transition-all duration-200 select-none ${
+        isClashed
+          ? 'opacity-40 bg-rose-950/20 border-rose-500/40'
+          : isEnrolled
+          ? 'bg-emerald-950/25 border-emerald-500/40'
+          : isTicked
+          ? 'bg-gradient-to-br from-brand-950/60 to-slate-900 border-brand-500 ring-2 ring-brand-500/30 shadow-lg shadow-brand-600/15'
+          : isFull
+          ? 'opacity-60 bg-slate-950/40 border-slate-800'
+          : 'bg-slate-900/90 border-cardBorder hover:border-slate-700 active:scale-[0.98]'
+      }`;
+
+      let mobileIndicatorHtml = '';
+      if (isClashed) {
+        mobileIndicatorHtml = `
+          <span class="px-2 py-0.5 rounded-lg bg-rose-950/90 text-rose-300 border border-rose-500/50 flex items-center gap-1 text-[11px] font-bold">
+            <i data-lucide="scissors" class="w-3 h-3 text-rose-400"></i>
+            <span>CUT</span>
+          </span>
+        `;
+      } else if (isEnrolled) {
+        mobileIndicatorHtml = `
+          <span class="px-2.5 py-0.5 rounded-lg bg-emerald-950/90 text-emerald-300 border border-emerald-500/50 flex items-center gap-1 text-[11px] font-bold">
+            <i data-lucide="check" class="w-3.5 h-3.5 text-emerald-400"></i>
+            <span>ENROLLED</span>
+          </span>
+        `;
+      } else if (isFull) {
+        mobileIndicatorHtml = `
+          <span class="px-2.5 py-0.5 rounded-lg bg-rose-950/90 text-rose-300 border border-rose-500/50 flex items-center gap-1 text-[11px] font-bold">
+            <i data-lucide="lock" class="w-3.5 h-3.5 text-rose-400"></i>
+            <span>FULL</span>
+          </span>
+        `;
+      } else {
+        mobileIndicatorHtml = `
+          <div class="w-7 h-7 rounded-xl flex items-center justify-center transition-all ${
+            isTicked 
+              ? 'bg-gradient-to-tr from-brand-600 to-amber-500 text-white shadow-md shadow-brand-500/40 ring-2 ring-brand-400' 
+              : 'bg-slate-800 border-2 border-slate-600 text-transparent'
+          }">
+            <i data-lucide="check" class="w-4 h-4"></i>
+          </div>
+        `;
+      }
+
+      card.innerHTML = `
+        <div class="flex items-start justify-between gap-2.5">
+          <div class="flex items-center gap-1.5 flex-wrap">
+            <span class="px-2 py-0.5 rounded-md text-[10px] font-bold border ${venueColors[session.venue] || 'bg-slate-800 text-slate-300 border-slate-700'}">
+              ${session.venue}
+            </span>
+            <span class="text-[11px] font-mono font-bold text-brand-400 flex items-center gap-1 bg-slate-950/80 px-2 py-0.5 rounded-md border border-slate-800">
+              <i data-lucide="clock" class="w-3 h-3 text-amber-400"></i>
+              <span>${session.timeSlot}</span>
+            </span>
+          </div>
+          <div class="flex-shrink-0">
+            ${mobileIndicatorHtml}
+          </div>
+        </div>
+
+        <div class="mt-2.5">
+          <h4 class="text-sm font-extrabold ${isClashed ? 'text-slate-500 line-through decoration-rose-500 decoration-2' : 'text-white'} leading-snug">
+            ${session.title}
+          </h4>
+          ${isClashed ? `
+            <div class="text-[11px] text-rose-400 font-medium mt-1 flex items-center gap-1">
+              <i data-lucide="alert-triangle" class="w-3 h-3"></i>
+              <span>Cut out: Clashed with chosen "${occupier.session.title}" (${session.timeSlot})</span>
+            </div>
+          ` : (session.subtitle ? `<p class="text-[11px] text-slate-400 mt-1 leading-snug">${session.subtitle}</p>` : '')}
+        </div>
+
+        <div class="mt-3 pt-2.5 border-t border-slate-800/80 flex items-center justify-between gap-2 text-xs">
+          <div class="flex items-center gap-2 min-w-0">
+            <div class="w-6 h-6 rounded-full bg-slate-800 border border-slate-700 text-amber-400 flex items-center justify-center font-bold text-[10px] flex-shrink-0">
+              ${(session.speaker || 'S').charAt(0)}
+            </div>
+            <div class="truncate">
+              <div class="font-bold text-slate-200 text-xs truncate">${session.speaker || 'TBD'}</div>
+              <div class="text-[10px] text-slate-500 truncate">${session.speakerRole || ''}</div>
+            </div>
+          </div>
+          <div class="text-right flex-shrink-0">
+            <span class="text-[10px] font-mono font-bold ${isFull ? 'text-rose-400' : 'text-emerald-400'}">
+              ${isFull ? 'FULL' : `${session.remainingQuota} seats left`}
+            </span>
+            <div class="w-16 bg-slate-950 rounded-full h-1 overflow-hidden border border-slate-800 mt-0.5">
+              <div class="${progressColor} h-full rounded-full" style="width: ${progressWidth}"></div>
+            </div>
+          </div>
+        </div>
+      `;
+
+      if (!isEnrolled && !isFull && !isClashed) {
+        card.classList.add('cursor-pointer');
+        card.addEventListener('click', () => {
+          const willBeChecked = !state.selectedSessionIds.has(session.id);
+          handleToggleSession(session.id, willBeChecked);
+        });
+      } else if (isClashed) {
+        card.addEventListener('click', () => {
+          showToast(`✂️ This event is cut because you selected "${occupier.session.title}" at ${session.timeSlot}. Untick that one first to switch.`, "warning");
+        });
+      }
+
+      mobileContainer.appendChild(card);
+    }
   });
 
-  // Attach change listeners to checkboxes
-  tbody.querySelectorAll('.session-checkbox').forEach(cb => {
-    cb.addEventListener('change', (e) => {
-      const sId = e.target.getAttribute('data-session-id');
-      handleToggleSession(sId, e.target.checked);
+  // Attach change listeners to checkboxes in table
+  if (tbody) {
+    tbody.querySelectorAll('.session-checkbox').forEach(cb => {
+      cb.addEventListener('change', (e) => {
+        const sId = e.target.getAttribute('data-session-id');
+        handleToggleSession(sId, e.target.checked);
+      });
     });
-  });
+    lucide.createIcons({ root: tbody });
+  }
+
+  if (mobileContainer) {
+    lucide.createIcons({ root: mobileContainer });
+  }
 
   updateSelectedCountUI();
-  lucide.createIcons({ root: tbody });
 }
 
 function handleToggleSession(sessionId, isChecked) {
@@ -610,11 +743,21 @@ function updateSelectedCountUI() {
   if (elements.selectedSessionsCount) {
     elements.selectedSessionsCount.textContent = count;
   }
+  const statusText = document.getElementById('bar-status-text');
+  if (statusText) {
+    if (count > 0) {
+      statusText.textContent = `${count} session${count > 1 ? 's' : ''} ticked • Ready`;
+      statusText.className = 'text-xs font-bold text-emerald-400';
+    } else {
+      statusText.textContent = 'Tick sessions above';
+      statusText.className = 'text-xs font-bold text-slate-400';
+    }
+  }
   const btn = elements.btnBatchRegister;
   if (btn && !btn.disabled) {
     const label = count > 0 
-      ? `REGISTER ${count} TICKED SESSION${count > 1 ? 'S' : ''}`
-      : 'REGISTER SELECTED SESSIONS';
+      ? `REGISTER (${count})`
+      : 'REGISTER SESSIONS';
     btn.innerHTML = `<i data-lucide="ticket" class="w-4 h-4"></i><span id="btn-register-label">${label}</span>`;
     lucide.createIcons({ root: btn });
   }
@@ -625,15 +768,10 @@ function setRegisterButtonLoading(isLoading) {
   if (!btn) return;
   btn.disabled = isLoading;
   if (isLoading) {
-    btn.innerHTML = `<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i><span>Processing Registration...</span>`;
+    btn.innerHTML = `<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i><span>Processing...</span>`;
     lucide.createIcons({ root: btn });
   } else {
-    const count = state.selectedSessionIds.size;
-    const label = count > 0 
-      ? `REGISTER ${count} TICKED SESSION${count > 1 ? 'S' : ''}`
-      : 'REGISTER SELECTED SESSIONS';
-    btn.innerHTML = `<i data-lucide="ticket" class="w-4 h-4"></i><span id="btn-register-label">${label}</span>`;
-    lucide.createIcons({ root: btn });
+    updateSelectedCountUI();
   }
 }
 
