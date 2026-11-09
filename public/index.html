@@ -1,0 +1,821 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CONFLUENCE - Caliph Commerce Domain Conclave Registration Portal</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='45' fill='%23EA580C'/><path d='M30 50 A20 20 0 0 1 70 50 A10 10 0 0 0 50 40' stroke='white' stroke-width='6' fill='none'/></svg>">
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#fff7ed',
+              100: '#ffedd5',
+              200: '#fed7aa',
+              300: '#fdba74',
+              400: '#fb923c',
+              500: '#f97316',
+              600: '#ea580c',
+              700: '#c2410c',
+              800: '#9a3412',
+              900: '#7c2d12',
+              950: '#431407',
+            },
+            darkBg: '#090D16',
+            cardBg: '#121826',
+            cardBorder: '#1F293D',
+          },
+          fontFamily: {
+            sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- SheetJS (xlsx) for Excel processing -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <!-- jsPDF & AutoTable for PDF Generation -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+  <!-- Canvas Confetti -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
+  <!-- QRCode.js -->
+  <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@500;700&display=swap');
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+    }
+    .font-heading {
+      font-family: 'Space Grotesk', sans-serif;
+    }
+    .glow-orange {
+      box-shadow: 0 0 35px -5px rgba(234, 88, 12, 0.35);
+    }
+    .glow-sm {
+      box-shadow: 0 0 15px -3px rgba(234, 88, 12, 0.25);
+    }
+    /* Custom scrollbars */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #0d121f;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #2a3449;
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #ea580c;
+    }
+    @keyframes pulse-subtle {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.6; }
+    }
+    .animate-pulse-subtle {
+      animation: pulse-subtle 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    }
+  </style>
+</head>
+<body class="bg-darkBg text-slate-100 min-h-screen flex flex-col selection:bg-brand-600 selection:text-white">
+
+  <!-- TOP NOTIFICATION BANNER / TOAST CONTAINER -->
+  <div id="toast-container" class="fixed top-5 right-5 z-50 flex flex-col gap-2 max-w-md w-full pointer-events-none"></div>
+
+  <!-- NAVIGATION HEADER -->
+  <header class="sticky top-0 z-40 bg-darkBg/90 backdrop-blur-md border-b border-cardBorder">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
+      
+      <!-- Brand & Conclave Identity -->
+      <div class="flex items-center gap-3">
+        <div class="w-12 h-12 rounded-xl bg-gradient-to-tr from-brand-700 to-amber-500 p-0.5 shadow-lg shadow-brand-600/30">
+          <div class="w-full h-full bg-darkBg rounded-[10px] flex items-center justify-center">
+            <i data-lucide="sparkles" class="w-6 h-6 text-brand-500"></i>
+          </div>
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <span class="text-xs uppercase tracking-widest font-bold text-brand-500">CALIPH DOMAIN CONCLAVE</span>
+            <span class="text-[10px] bg-brand-500/10 text-brand-400 border border-brand-500/20 px-2 py-0.5 rounded-full font-mono">2026</span>
+          </div>
+          <h1 class="text-xl sm:text-2xl font-black font-heading tracking-tight text-white flex items-center gap-1.5">
+            CONFLUENCE
+            <span class="text-xs font-normal text-slate-400 hidden sm:inline-block">| Commerce Domain Conclave</span>
+          </h1>
+        </div>
+      </div>
+
+      <!-- Action Buttons & Navigation -->
+      <div class="flex items-center gap-2 sm:gap-3">
+        <button id="btn-view-poster" class="hidden sm:inline-flex items-center gap-1.5 text-xs font-medium text-slate-300 hover:text-white bg-slate-800/80 hover:bg-slate-700 px-3 py-2 rounded-lg border border-slate-700 transition">
+          <i data-lucide="image" class="w-4 h-4 text-amber-400"></i>
+          <span>View Poster</span>
+        </button>
+
+        <!-- View Switcher (Public Registration vs Admin Panel) -->
+        <div class="bg-slate-900 p-1 rounded-xl border border-cardBorder flex items-center gap-1">
+          <button id="nav-registration-btn" class="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-brand-600 text-white shadow-sm transition">
+            <i data-lucide="user-check" class="w-4 h-4"></i>
+            <span>Registration</span>
+          </button>
+          <button id="nav-admin-btn" class="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold text-slate-400 hover:text-white hover:bg-slate-800 transition">
+            <i data-lucide="shield" class="w-4 h-4"></i>
+            <span>Admin Panel</span>
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </header>
+
+  <!-- MAIN APP CONTAINER -->
+  <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+
+    <!-- ========================================================================= -->
+    <!-- VIEW 1: REGISTRATION PORTAL (STUDENT & PUBLIC VIEW)                        -->
+    <!-- ========================================================================= -->
+    <section id="view-registration" class="space-y-6">
+
+      <!-- HERO BANNER -->
+      <div class="relative overflow-hidden rounded-2xl bg-gradient-to-r from-brand-950/60 via-cardBg to-slate-900 border border-brand-500/20 p-6 sm:p-8 glow-orange">
+        <div class="absolute -right-16 -top-16 w-64 h-64 bg-brand-600/10 rounded-full blur-3xl pointer-events-none"></div>
+        
+        <div class="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+          <div class="space-y-2 max-w-2xl">
+            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-brand-500/15 border border-brand-500/30 text-brand-400 text-xs font-bold tracking-wide uppercase">
+              <span class="w-2 h-2 rounded-full bg-brand-400 animate-ping"></span>
+              Official Session Registration
+            </div>
+            <h2 class="text-2xl sm:text-3xl font-extrabold font-heading text-white tracking-tight">
+              Reserve Your Seat for <span class="text-transparent bg-clip-text bg-gradient-to-r from-brand-400 to-amber-300">Confluence Sessions</span>
+            </h2>
+            <p class="text-slate-400 text-xs sm:text-sm leading-relaxed">
+              Select your student profile and pick your preferred sessions. Seats are strictly limited by room quota (Majlis, Incubator, Main Stage). Real-time quota validation is active.
+            </p>
+            <div class="flex flex-wrap items-center gap-4 pt-2 text-xs text-slate-400">
+              <span class="flex items-center gap-1.5">
+                <i data-lucide="calendar" class="w-4 h-4 text-brand-400"></i>
+                Monday, 09 November 2026
+              </span>
+              <span class="flex items-center gap-1.5">
+                <i data-lucide="map-pin" class="w-4 h-4 text-brand-400"></i>
+                Caliph Life School, Thamarassery, Kozhikode
+              </span>
+            </div>
+          </div>
+
+          <!-- Quick Stats Badge -->
+          <div class="grid grid-cols-2 gap-3 sm:min-w-[280px]">
+            <div class="bg-darkBg/80 backdrop-blur border border-cardBorder rounded-xl p-3 text-center">
+              <div id="stat-hero-sessions" class="text-xl font-bold font-heading text-white">8</div>
+              <div class="text-[11px] text-slate-400 uppercase font-semibold">Total Sessions</div>
+            </div>
+            <div class="bg-darkBg/80 backdrop-blur border border-cardBorder rounded-xl p-3 text-center">
+              <div id="stat-hero-students" class="text-xl font-bold font-heading text-brand-400">0</div>
+              <div class="text-[11px] text-slate-400 uppercase font-semibold">Registered Students</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- STEP 1: STUDENT SEARCH & SELECTION -->
+      <div class="bg-cardBg rounded-2xl border border-cardBorder p-5 sm:p-7 shadow-xl glow-sm">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-cardBorder/60">
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="w-6 h-6 rounded-full bg-brand-600/20 text-brand-400 border border-brand-500/30 text-xs flex items-center justify-center font-bold">1</span>
+              <h3 class="text-base sm:text-lg font-bold text-white">Search & Select Student</h3>
+            </div>
+            <p class="text-xs text-slate-400 mt-1">Search student from the uploaded roster by Name, Class, or Roll Number.</p>
+          </div>
+          
+          <!-- Selected Student Status Badge -->
+          <div id="active-student-pill" class="hidden">
+            <div class="flex items-center gap-3 bg-brand-950/90 border border-brand-500/50 px-4 py-2 rounded-2xl shadow-lg">
+              <div class="w-8 h-8 rounded-full bg-gradient-to-tr from-brand-600 to-amber-500 text-white flex items-center justify-center font-bold text-xs" id="active-student-avatar">
+                S
+              </div>
+              <div>
+                <div class="flex items-center gap-2">
+                  <span class="text-xs text-slate-400">Selected Student:</span>
+                  <span id="active-student-name" class="font-extrabold text-white text-sm"></span>
+                  <span id="active-student-class" class="text-brand-300 text-xs bg-brand-900/60 border border-brand-500/30 px-2.5 py-0.5 rounded-full font-bold"></span>
+                </div>
+                <div class="text-[11px] text-slate-400" id="active-student-meta">Class Batch</div>
+              </div>
+              <button id="btn-clear-student" title="Change Student" class="text-slate-400 hover:text-white ml-3 p-1.5 rounded-lg hover:bg-slate-800 transition flex items-center gap-1 text-xs">
+                <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
+                <span class="hidden sm:inline">Change</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Search Bar with Instant Autocomplete Dropdown -->
+        <div class="relative mt-4">
+          <div class="relative">
+            <i data-lucide="search" class="w-5 h-5 text-brand-400 absolute left-4 top-1/2 -translate-y-1/2"></i>
+            <input 
+              type="text" 
+              id="student-search-input" 
+              placeholder="🔍 Search student name or class batch (e.g. C2C, C2B, C1C)..." 
+              autocomplete="off"
+              class="w-full bg-slate-900/90 border-2 border-slate-700/80 rounded-2xl pl-12 pr-12 py-3.5 text-sm sm:text-base text-white placeholder-slate-500 focus:outline-none focus:border-brand-500 focus:ring-4 focus:ring-brand-500/20 transition"
+            />
+            <button id="btn-clear-search" class="hidden absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300">
+              <i data-lucide="x-circle" class="w-5 h-5"></i>
+            </button>
+          </div>
+
+          <!-- Quick Suggestion Pills -->
+          <div id="quick-student-chips" class="flex flex-wrap items-center gap-2 mt-3 text-xs">
+            <span class="text-slate-500 text-[11px] font-medium">Quick Select:</span>
+            <!-- Populated via JS -->
+          </div>
+
+          <!-- Auto-Suggest Dropdown Results -->
+          <div id="student-search-dropdown" class="hidden absolute left-0 right-0 top-full mt-2 bg-slate-900 border-2 border-brand-500/40 rounded-2xl shadow-2xl z-30 max-h-80 overflow-y-auto divide-y divide-slate-800">
+            <!-- Results populated by JS -->
+          </div>
+        </div>
+
+        <!-- Student Existing Registrations Summary -->
+        <div id="student-enrolled-summary" class="hidden mt-4 pt-4 border-t border-cardBorder/60 bg-slate-950/50 rounded-xl p-4">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
+              <i data-lucide="bookmark-check" class="w-4 h-4 text-emerald-400"></i>
+              Already Enrolled Sessions for this Student:
+            </span>
+            <span id="student-reg-count" class="text-xs px-2.5 py-0.5 rounded-full bg-emerald-950/80 border border-emerald-500/30 text-emerald-300 font-mono font-bold">0 sessions</span>
+          </div>
+          <div id="student-reg-list" class="flex flex-wrap gap-2 text-xs">
+            <!-- Badges populated by JS -->
+          </div>
+        </div>
+      </div>
+
+      <!-- STEP 2: PROGRAM SELECTION LIST (CHECKBOX TICK COLUMN WORKFLOW) -->
+      <div id="step2-container" class="space-y-4">
+        
+        <!-- Header & Action Controls -->
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="w-6 h-6 rounded-full bg-brand-600/20 text-brand-400 border border-brand-500/30 text-xs flex items-center justify-center font-bold">2</span>
+              <h3 class="text-base sm:text-lg font-bold font-heading text-white">Tick Sessions to Register</h3>
+            </div>
+            <p class="text-xs text-slate-400 mt-0.5">Tick the checkbox column next to each program you want the student to attend, then click the Register button.</p>
+          </div>
+
+          <!-- Filter & Clash Behavior Tools -->
+          <div class="flex items-center gap-2 flex-wrap">
+            <!-- Disappear vs Cut Mode Switcher -->
+            <div class="flex items-center gap-1.5 bg-slate-900/90 p-1 rounded-xl border border-cardBorder text-xs">
+              <span class="text-slate-400 text-[11px] font-semibold px-2 flex items-center gap-1">
+                <i data-lucide="git-branch" class="w-3.5 h-3.5 text-amber-400"></i>
+                <span class="hidden sm:inline">Same Time Slot:</span>
+              </span>
+              <button id="btn-mode-disappear" title="Hide competing events at the same time slot" class="px-2.5 py-1 rounded-lg text-[11px] font-bold transition bg-brand-600 text-white shadow-sm flex items-center gap-1">
+                <i data-lucide="eye-off" class="w-3 h-3"></i>
+                <span>Disappear</span>
+              </button>
+              <button id="btn-mode-cut" title="Show competing events cut out with strike-through" class="px-2.5 py-1 rounded-lg text-[11px] font-bold transition text-slate-400 hover:text-white hover:bg-slate-800 flex items-center gap-1">
+                <i data-lucide="scissors" class="w-3 h-3"></i>
+                <span>Cut Out</span>
+              </button>
+            </div>
+
+            <!-- Venue Filters -->
+            <div class="flex items-center gap-1 bg-slate-900 p-1 rounded-xl border border-cardBorder text-xs">
+              <button class="filter-btn active px-3 py-1 rounded-lg font-medium text-white bg-brand-600 transition" data-filter="all">All</button>
+              <button class="filter-btn px-3 py-1 rounded-lg font-medium text-slate-400 hover:text-white transition" data-filter="Majlis">Majlis</button>
+              <button class="filter-btn px-3 py-1 rounded-lg font-medium text-slate-400 hover:text-white transition" data-filter="Incubator">Incubator</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- EMPTY STATE (WHEN NO STUDENT IS SELECTED YET) -->
+        <div id="no-student-placeholder" class="bg-cardBg rounded-2xl border-2 border-dashed border-cardBorder p-10 text-center">
+          <div class="w-14 h-14 rounded-2xl bg-brand-500/10 text-brand-400 border border-brand-500/20 flex items-center justify-center mx-auto mb-3">
+            <i data-lucide="user-plus" class="w-7 h-7"></i>
+          </div>
+          <h4 class="text-base font-bold text-white mb-1">Please Select a Student First</h4>
+          <p class="text-xs text-slate-400 max-w-md mx-auto">
+            Use the search bar above to select a student. Once selected, the full program list with tick checkboxes will activate for registration.
+          </p>
+        </div>
+
+        <!-- SESSIONS CHECKLIST CONTAINER (VISIBLE ONCE STUDENT IS SELECTED) -->
+        <div id="sessions-table-wrapper" class="hidden bg-cardBg rounded-2xl border border-cardBorder overflow-hidden shadow-xl">
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs sm:text-sm">
+              <thead class="bg-slate-900/90 text-slate-300 uppercase text-[11px] font-bold border-b border-cardBorder tracking-wider">
+                <tr>
+                  <th class="py-3.5 px-4 text-center w-16">
+                    <span class="text-brand-400">TICK</span>
+                  </th>
+                  <th class="py-3.5 px-4">Program / Session Details</th>
+                  <th class="py-3.5 px-4">Venue</th>
+                  <th class="py-3.5 px-4">Time Slot</th>
+                  <th class="py-3.5 px-4">Speaker</th>
+                  <th class="py-3.5 px-4 text-center">Capacity & Quota</th>
+                </tr>
+              </thead>
+              <tbody id="sessions-checklist-tbody" class="divide-y divide-cardBorder/50 text-slate-200">
+                <!-- Checkbox rows injected via JS -->
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Bottom Sticky Action Bar for Registration -->
+          <div class="bg-slate-900/95 border-t border-cardBorder p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div class="flex items-center gap-3">
+              <div class="w-10 h-10 rounded-xl bg-brand-600/20 border border-brand-500/30 text-brand-400 flex items-center justify-center font-bold">
+                <i data-lucide="check-square" class="w-5 h-5"></i>
+              </div>
+              <div>
+                <div class="text-xs text-slate-400">Registration Summary:</div>
+                <div class="text-sm font-extrabold text-white">
+                  <span id="selected-sessions-count" class="text-brand-400 text-base font-mono">0</span> sessions ticked for <span id="bar-student-name" class="text-brand-300">Selected Student</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="flex items-center gap-2">
+              <button id="btn-uncheck-all" class="px-3.5 py-2.5 rounded-xl text-xs font-semibold text-slate-400 hover:text-white hover:bg-slate-800 transition">
+                Clear Ticks
+              </button>
+              <button id="btn-batch-register" class="px-6 py-3 rounded-xl text-xs sm:text-sm font-extrabold bg-gradient-to-r from-brand-600 to-amber-600 hover:from-brand-500 hover:to-amber-500 text-white shadow-lg shadow-brand-600/30 hover:shadow-brand-600/50 active:scale-[0.99] transition flex items-center justify-center gap-2">
+                <i data-lucide="ticket" class="w-4 h-4"></i>
+                <span id="btn-register-label">REGISTER SELECTED SESSIONS</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+    </section>
+
+    <!-- ========================================================================= -->
+    <!-- VIEW 2: ADMIN PANEL (MANAGEMENT, EXCEL UPLOAD, SUMMARY & EXPORT)          -->
+    <!-- ========================================================================= -->
+    <section id="view-admin" class="hidden space-y-6">
+
+      <!-- Admin Top Banner -->
+      <div class="bg-cardBg rounded-2xl border border-cardBorder p-5 sm:p-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <div class="inline-flex items-center gap-2 text-xs font-bold text-amber-400 uppercase tracking-wider mb-1">
+            <i data-lucide="shield-check" class="w-4 h-4"></i>
+            Conclave Administration & Operations
+          </div>
+          <h2 class="text-2xl font-bold font-heading text-white">Sessions & Student Attendance Manager</h2>
+          <p class="text-xs text-slate-400 mt-0.5">Manage session quotas, upload student directories via Excel, and export attendee lists as PDF & Excel.</p>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <!-- Master Excel Export -->
+          <a href="/api/export/master/excel" download="CONFLUENCE_Master_Registrations.xlsx" class="inline-flex items-center gap-1.5 px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold transition shadow-sm">
+            <i data-lucide="file-spreadsheet" class="w-4 h-4"></i>
+            <span>Export Master Excel</span>
+          </a>
+          <button id="btn-create-session-modal" class="inline-flex items-center gap-1.5 px-3.5 py-2 bg-brand-600 hover:bg-brand-500 text-white rounded-xl text-xs font-bold transition shadow-sm shadow-brand-600/30">
+            <i data-lucide="plus" class="w-4 h-4"></i>
+            <span>Add New Session</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Admin Tabs Navigation -->
+      <div class="flex border-b border-cardBorder gap-2 sm:gap-6 text-sm font-semibold overflow-x-auto">
+        <button id="admin-tab-btn-summary" class="admin-tab-btn pb-3 px-1 border-b-2 border-brand-500 text-brand-400 flex items-center gap-2">
+          <i data-lucide="bar-chart-3" class="w-4 h-4"></i>
+          <span>Summary & Attendance Reports</span>
+        </button>
+        <button id="admin-tab-btn-sessions" class="admin-tab-btn pb-3 px-1 border-b-2 border-transparent text-slate-400 hover:text-slate-200 flex items-center gap-2">
+          <i data-lucide="calendar-days" class="w-4 h-4"></i>
+          <span>Sessions & Quotas</span>
+        </button>
+        <button id="admin-tab-btn-students" class="admin-tab-btn pb-3 px-1 border-b-2 border-transparent text-slate-400 hover:text-slate-200 flex items-center gap-2">
+          <i data-lucide="users" class="w-4 h-4"></i>
+          <span>Students Directory & Excel Upload</span>
+        </button>
+      </div>
+
+      <!-- ADMIN TAB 1: SUMMARY & REPORTS (PDF / EXCEL EXPORT) -->
+      <div id="admin-tab-summary" class="space-y-6">
+        
+        <!-- KPI METRICS -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+          <div class="bg-cardBg rounded-xl border border-cardBorder p-4">
+            <div class="flex items-center justify-between text-slate-400 mb-1">
+              <span class="text-xs uppercase font-bold">Total Sessions</span>
+              <i data-lucide="calendar" class="w-4 h-4 text-brand-400"></i>
+            </div>
+            <div id="kpi-sessions" class="text-2xl font-black font-heading text-white">0</div>
+            <div class="text-[11px] text-slate-500 mt-1">Conclave schedule</div>
+          </div>
+
+          <div class="bg-cardBg rounded-xl border border-cardBorder p-4">
+            <div class="flex items-center justify-between text-slate-400 mb-1">
+              <span class="text-xs uppercase font-bold">Students Registered</span>
+              <i data-lucide="user-check" class="w-4 h-4 text-emerald-400"></i>
+            </div>
+            <div id="kpi-registrations" class="text-2xl font-black font-heading text-emerald-400">0</div>
+            <div class="text-[11px] text-slate-500 mt-1">Total confirmed passes</div>
+          </div>
+
+          <div class="bg-cardBg rounded-xl border border-cardBorder p-4">
+            <div class="flex items-center justify-between text-slate-400 mb-1">
+              <span class="text-xs uppercase font-bold">Total Capacity</span>
+              <i data-lucide="layers" class="w-4 h-4 text-amber-400"></i>
+            </div>
+            <div id="kpi-capacity" class="text-2xl font-black font-heading text-amber-400">0</div>
+            <div class="text-[11px] text-slate-500 mt-1">Across all venues</div>
+          </div>
+
+          <div class="bg-cardBg rounded-xl border border-cardBorder p-4">
+            <div class="flex items-center justify-between text-slate-400 mb-1">
+              <span class="text-xs uppercase font-bold">Quota Full Sessions</span>
+              <i data-lucide="alert-octagon" class="w-4 h-4 text-rose-400"></i>
+            </div>
+            <div id="kpi-full" class="text-2xl font-black font-heading text-rose-400">0</div>
+            <div class="text-[11px] text-slate-500 mt-1">Capacity reached</div>
+          </div>
+        </div>
+
+        <!-- COMPREHENSIVE CONCLAVE EXPORT HUB (ALL PROGRAMS & STUDENT-WISE PARTICIPATION) -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          
+          <!-- OPTION 1: ALL PROGRAMS COMBINED AT ONCE -->
+          <div class="bg-gradient-to-br from-cardBg to-slate-900 border border-brand-500/30 rounded-2xl p-5 shadow-lg relative overflow-hidden">
+            <div class="flex items-start justify-between gap-3 mb-2">
+              <div class="flex items-center gap-2.5">
+                <div class="w-10 h-10 rounded-xl bg-brand-500/15 border border-brand-500/30 text-brand-400 flex items-center justify-center font-bold">
+                  <i data-lucide="layers" class="w-5 h-5"></i>
+                </div>
+                <div>
+                  <h4 class="text-sm font-bold text-white">All Programs Master Report</h4>
+                  <p class="text-[11px] text-slate-400">Includes all 8 sessions and every registered attendee in 1 file</p>
+                </div>
+              </div>
+              <span class="text-[10px] bg-brand-950 border border-brand-500/40 text-brand-300 px-2 py-0.5 rounded-full font-mono font-bold">ALL SESSIONS</span>
+            </div>
+
+            <p class="text-xs text-slate-300 mt-2 mb-4 leading-relaxed">
+              Generate a combined master document containing executive quota analytics and complete attendee rolls across all conclave tracks.
+            </p>
+
+            <div class="flex flex-wrap items-center gap-2 pt-1 border-t border-cardBorder/60">
+              <button onclick="exportAllProgramsMasterPDF()" class="inline-flex items-center gap-1.5 px-3.5 py-2 bg-rose-600 hover:bg-rose-500 text-white rounded-xl text-xs font-bold transition shadow-sm">
+                <i data-lucide="file-down" class="w-4 h-4"></i>
+                <span>Download Master PDF</span>
+              </button>
+              <a href="/api/export/master/excel" download="CONFLUENCE_Master_Registrations.xlsx" class="inline-flex items-center gap-1.5 px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold transition shadow-sm">
+                <i data-lucide="file-spreadsheet" class="w-4 h-4"></i>
+                <span>Download Master Excel</span>
+              </a>
+            </div>
+          </div>
+
+          <!-- OPTION 2: EACH STUDENT AND PARTICIPATED SESSIONS (1-CLICK) -->
+          <div class="bg-gradient-to-br from-cardBg to-slate-900 border border-cyan-500/30 rounded-2xl p-5 shadow-lg relative overflow-hidden">
+            <div class="flex items-start justify-between gap-3 mb-2">
+              <div class="flex items-center gap-2.5">
+                <div class="w-10 h-10 rounded-xl bg-cyan-500/15 border border-cyan-500/30 text-cyan-400 flex items-center justify-center font-bold">
+                  <i data-lucide="user-check" class="w-5 h-5"></i>
+                </div>
+                <div>
+                  <h4 class="text-sm font-bold text-white">Student Participation Report</h4>
+                  <p class="text-[11px] text-slate-400">1-click list of every student and their enrolled sessions</p>
+                </div>
+              </div>
+              <span class="text-[10px] bg-cyan-950 border border-cyan-500/40 text-cyan-300 px-2 py-0.5 rounded-full font-mono font-bold">STUDENT-WISE</span>
+            </div>
+
+            <p class="text-xs text-slate-300 mt-2 mb-4 leading-relaxed">
+              Export each student with their Class, Roll No, total sessions count, and the exact programs they participated in (with venues & timings).
+            </p>
+
+            <div class="flex flex-wrap items-center gap-2 pt-1 border-t border-cardBorder/60">
+              <button onclick="exportStudentsParticipationPDF()" class="inline-flex items-center gap-1.5 px-3.5 py-2 bg-rose-600 hover:bg-rose-500 text-white rounded-xl text-xs font-bold transition shadow-sm">
+                <i data-lucide="file-down" class="w-4 h-4"></i>
+                <span>Download Student PDF</span>
+              </button>
+              <a href="/api/export/students-participation/excel" download="CONFLUENCE_Students_Participation_Report.xlsx" class="inline-flex items-center gap-1.5 px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold transition shadow-sm">
+                <i data-lucide="file-spreadsheet" class="w-4 h-4"></i>
+                <span>Download Student Excel</span>
+              </a>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- SESSION SUMMARY CARDS WITH PER-SESSION PDF & EXCEL EXPORTS -->
+        <div class="bg-cardBg rounded-2xl border border-cardBorder p-5 sm:p-6">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
+            <div>
+              <h3 class="text-base font-bold text-white flex items-center gap-2">
+                <i data-lucide="file-text" class="w-5 h-5 text-brand-400"></i>
+                Session Attendance & Quota Summary
+              </h3>
+              <p class="text-xs text-slate-400">Download each session's student list as PDF (with official Confluence styling) or Excel (.xlsx).</p>
+            </div>
+          </div>
+
+          <div id="admin-summary-list" class="space-y-4">
+            <!-- Injected via JS -->
+          </div>
+        </div>
+
+      </div>
+
+      <!-- ADMIN TAB 2: SESSIONS & QUOTAS MANAGEMENT -->
+      <div id="admin-tab-sessions" class="hidden space-y-4">
+        <div class="bg-cardBg rounded-2xl border border-cardBorder p-5 sm:p-6">
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="text-base font-bold text-white">Manage Conclave Sessions</h3>
+            <span class="text-xs text-slate-400">Click Edit to modify Venue, Quota, or Timings</span>
+          </div>
+
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs">
+              <thead class="text-slate-400 uppercase bg-slate-900/60 border-b border-cardBorder">
+                <tr>
+                  <th class="px-4 py-3 font-semibold">Time & Slot</th>
+                  <th class="px-4 py-3 font-semibold">Session Title</th>
+                  <th class="px-4 py-3 font-semibold">Venue</th>
+                  <th class="px-4 py-3 font-semibold">Speaker</th>
+                  <th class="px-4 py-3 font-semibold">Quota & Status</th>
+                  <th class="px-4 py-3 font-semibold text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="admin-sessions-table" class="divide-y divide-cardBorder/50 text-slate-300">
+                <!-- Injected via JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ADMIN TAB 3: STUDENTS DIRECTORY & EXCEL UPLOAD -->
+      <div id="admin-tab-students" class="hidden space-y-6">
+
+        <!-- EXCEL BULK UPLOAD BOX -->
+        <div class="bg-cardBg rounded-2xl border border-cardBorder p-5 sm:p-6">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+            <div>
+              <h3 class="text-base font-bold text-white flex items-center gap-2">
+                <i data-lucide="file-up" class="w-5 h-5 text-emerald-400"></i>
+                Direct Excel / CSV Student Import
+              </h3>
+              <p class="text-xs text-slate-400">Upload your student list directly from Excel (.xlsx, .xls) or CSV. Columns: Name, Class, Roll No, Phone.</p>
+            </div>
+            
+            <a href="/api/students/sample-template" class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-xl text-xs font-semibold transition">
+              <i data-lucide="download" class="w-3.5 h-3.5 text-amber-400"></i>
+              <span>Download Excel Template</span>
+            </a>
+          </div>
+
+          <!-- Drag and Drop Dropzone -->
+          <div id="excel-dropzone" class="border-2 border-dashed border-slate-700 hover:border-brand-500 rounded-2xl p-8 text-center cursor-pointer bg-slate-900/40 hover:bg-slate-900/80 transition group">
+            <input type="file" id="excel-file-input" accept=".xlsx, .xls, .csv" class="hidden" />
+            <div class="w-12 h-12 rounded-xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center mx-auto mb-3 group-hover:scale-110 transition">
+              <i data-lucide="upload-cloud" class="w-6 h-6"></i>
+            </div>
+            <div class="text-sm font-bold text-white mb-1">Click to browse or drag & drop Excel file here</div>
+            <div class="text-xs text-slate-400">Supports .xlsx, .xls, or .csv (Headers: Name, Class, Roll No)</div>
+            <div id="upload-status" class="hidden mt-3 text-xs font-semibold"></div>
+          </div>
+        </div>
+
+        <!-- MANUAL ADD STUDENT & STUDENT ROSTER -->
+        <div class="bg-cardBg rounded-2xl border border-cardBorder p-5 sm:p-6">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+            <h3 class="text-base font-bold text-white flex items-center gap-2">
+              <i data-lucide="users" class="w-5 h-5 text-brand-400"></i>
+              Registered Student Roster (<span id="admin-student-count">0</span>)
+            </h3>
+
+            <!-- Search in Students Table -->
+            <div class="relative w-full sm:w-64">
+              <i data-lucide="search" class="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2"></i>
+              <input type="text" id="admin-student-search" placeholder="Filter roster..." class="w-full bg-slate-900 border border-slate-700 rounded-lg pl-8 pr-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-brand-500" />
+            </div>
+          </div>
+
+          <!-- Quick Add Student Form -->
+          <form id="form-add-student" class="grid grid-cols-1 sm:grid-cols-4 gap-2 mb-4 p-3 bg-slate-900/60 rounded-xl border border-cardBorder">
+            <input type="text" id="new-student-name" placeholder="Student Full Name *" required class="bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-brand-500" />
+            <input type="text" id="new-student-class" placeholder="Class / Batch (e.g. C2C, C2B, C1C) *" required class="bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-brand-500" />
+            <input type="text" id="new-student-roll" placeholder="Roll No (optional)" class="bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-brand-500" />
+            <button type="submit" class="bg-brand-600 hover:bg-brand-500 text-white rounded-lg px-4 py-2 text-xs font-bold transition flex items-center justify-center gap-1.5">
+              <i data-lucide="user-plus" class="w-3.5 h-3.5"></i>
+              <span>Add Student</span>
+            </button>
+          </form>
+
+          <!-- Students List Table -->
+          <div class="overflow-x-auto max-h-96">
+            <table class="w-full text-left text-xs">
+              <thead class="text-slate-400 uppercase bg-slate-900/80 border-b border-cardBorder sticky top-0">
+                <tr>
+                  <th class="px-4 py-2.5 font-semibold w-12 text-center">#</th>
+                  <th class="px-4 py-2.5 font-semibold">Student Name</th>
+                  <th class="px-4 py-2.5 font-semibold">Class / Batch</th>
+                  <th class="px-4 py-2.5 font-semibold">Roll No</th>
+                  <th class="px-4 py-2.5 font-semibold">Enrolled Sessions</th>
+                  <th class="px-4 py-2.5 font-semibold text-right">Action</th>
+                </tr>
+              </thead>
+              <tbody id="admin-students-table" class="divide-y divide-cardBorder/40 text-slate-300">
+                <!-- Injected via JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- ========================================================================= -->
+  <!-- MODALS                                                                    -->
+  <!-- ========================================================================= -->
+
+  <!-- MODAL 1: REGISTRATION SUCCESS TICKET PASS -->
+  <div id="modal-pass" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm hidden items-center justify-center p-4">
+    <div class="bg-slate-900 border border-brand-500/40 rounded-3xl max-w-md w-full overflow-hidden shadow-2xl glow-orange animate-scale-up">
+      <!-- Pass Header -->
+      <div class="bg-gradient-to-r from-brand-700 to-amber-600 p-5 text-white relative">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <i data-lucide="sparkles" class="w-5 h-5 text-white"></i>
+            <span class="text-xs uppercase font-extrabold tracking-widest">CONFLUENCE PASS</span>
+          </div>
+          <span class="text-[11px] bg-black/20 backdrop-blur px-2 py-0.5 rounded-full font-mono font-bold" id="pass-id-badge">REG-0000</span>
+        </div>
+        <h4 class="text-xl font-black font-heading mt-2">Registration Confirmed!</h4>
+        <p class="text-xs text-white/80">Caliph Commerce Domain Conclave • 09 Nov 2026</p>
+      </div>
+
+      <!-- Ticket Body -->
+      <div class="p-6 space-y-4">
+        <!-- Student Info Box -->
+        <div class="bg-slate-950/70 rounded-2xl p-4 border border-slate-800">
+          <div class="text-[11px] uppercase font-bold text-slate-400">Student Attendee</div>
+          <div class="text-lg font-bold text-white" id="pass-student-name">Student Name</div>
+          <div class="text-xs text-brand-400 font-medium" id="pass-student-class">Class</div>
+        </div>
+
+        <!-- Sessions Details Container (Supports single or multiple ticked sessions) -->
+        <div id="pass-sessions-list" class="space-y-2 max-h-48 overflow-y-auto pr-1">
+          <!-- Populated dynamically via JS -->
+        </div>
+
+        <!-- QR Code Display -->
+        <div class="flex items-center justify-center p-3 bg-white rounded-2xl w-32 h-32 mx-auto">
+          <div id="pass-qrcode"></div>
+        </div>
+        <p class="text-center text-[11px] text-slate-500">Show this pass or QR at the session entrance</p>
+
+        <!-- Pass Action Buttons -->
+        <div class="flex gap-2 pt-2">
+          <button id="btn-print-pass" class="flex-1 py-2.5 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5">
+            <i data-lucide="printer" class="w-4 h-4"></i>
+            <span>Print Pass</span>
+          </button>
+          <button id="btn-close-pass" class="flex-1 py-2.5 bg-brand-600 hover:bg-brand-500 text-white rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-sm shadow-brand-600/30">
+            <span>Done</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL 2: ADD / EDIT SESSION MODAL -->
+  <div id="modal-session-form" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm hidden items-center justify-center p-4">
+    <div class="bg-slate-900 border border-cardBorder rounded-3xl max-w-lg w-full overflow-hidden shadow-2xl">
+      <div class="p-5 border-b border-cardBorder flex items-center justify-between">
+        <h4 id="modal-session-title" class="text-base font-bold text-white">Add New Session</h4>
+        <button id="btn-close-session-modal" class="text-slate-400 hover:text-white p-1 rounded-md">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <form id="form-session" class="p-5 space-y-3.5 text-xs">
+        <input type="hidden" id="session-form-id" />
+
+        <div>
+          <label class="block text-slate-400 mb-1 font-semibold">Session Title *</label>
+          <input type="text" id="session-input-title" required placeholder="e.g. The Economics of Power" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-brand-500" />
+        </div>
+
+        <div>
+          <label class="block text-slate-400 mb-1 font-semibold">Subtitle / Topic Details</label>
+          <input type="text" id="session-input-subtitle" placeholder="e.g. How Money, Resources & Politics Shape the World" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-brand-500" />
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-slate-400 mb-1 font-semibold">Speaker Name</label>
+            <input type="text" id="session-input-speaker" placeholder="e.g. Faiz Narkashi" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-brand-500" />
+          </div>
+          <div>
+            <label class="block text-slate-400 mb-1 font-semibold">Speaker Designation</label>
+            <input type="text" id="session-input-speaker-role" placeholder="e.g. Principal, Caliph Life School" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-brand-500" />
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-slate-400 mb-1 font-semibold">Venue *</label>
+            <select id="session-input-venue" required class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-brand-500">
+              <option value="Majlis">Majlis</option>
+              <option value="Incubator">Incubator</option>
+              <option value="Main Auditorium">Main Auditorium</option>
+              <option value="Activity Arena">Activity Arena</option>
+              <option value="Open Stage">Open Stage</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-slate-400 mb-1 font-semibold">Seat Quota (Capacity) *</label>
+            <input type="number" id="session-input-quota" min="1" max="1000" required placeholder="e.g. 80" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-brand-500 font-mono" />
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-slate-400 mb-1 font-semibold">Start Time (e.g. 02:30 PM)</label>
+            <input type="text" id="session-input-start" placeholder="02:30 PM" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-brand-500 font-mono" />
+          </div>
+          <div>
+            <label class="block text-slate-400 mb-1 font-semibold">End Time (e.g. 04:00 PM)</label>
+            <input type="text" id="session-input-end" placeholder="04:00 PM" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-brand-500 font-mono" />
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-slate-400 mb-1 font-semibold">Category / Track</label>
+          <select id="session-input-category" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-brand-500">
+            <option value="Majlis">Majlis</option>
+            <option value="Incubator">Incubator</option>
+            <option value="General">General / Keynote</option>
+            <option value="Games">Games & Activity</option>
+            <option value="Cultural">Cultural</option>
+          </select>
+        </div>
+
+        <div class="flex justify-end gap-2 pt-3 border-t border-cardBorder">
+          <button type="button" id="btn-cancel-session-modal" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl transition">Cancel</button>
+          <button type="submit" class="px-5 py-2 bg-brand-600 hover:bg-brand-500 text-white rounded-xl font-bold transition">Save Session</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL 3: VIEW OFFICIAL POSTER MODAL -->
+  <div id="modal-poster" class="fixed inset-0 z-50 bg-black/90 backdrop-blur-md hidden items-center justify-center p-4">
+    <div class="relative max-w-lg w-full max-h-[90vh] flex flex-col bg-slate-900 border border-cardBorder rounded-2xl overflow-hidden shadow-2xl">
+      <div class="p-3 bg-slate-950 flex items-center justify-between border-b border-cardBorder">
+        <span class="text-xs font-bold text-brand-400">CONFLUENCE Official Event Schedule</span>
+        <button id="btn-close-poster" class="text-slate-400 hover:text-white p-1">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+      <div class="overflow-y-auto p-2">
+        <img src="/confluence-poster.jpg" alt="Confluence Schedule Poster" class="w-full rounded-xl object-contain shadow-lg" onerror="this.src='https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=800&auto=format&fit=crop&q=80'" />
+      </div>
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <footer class="border-t border-cardBorder/60 bg-darkBg/90 py-6 mt-12 text-center text-xs text-slate-500">
+    <div class="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-3">
+      <div class="flex items-center gap-2">
+        <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+        <span>Confluence 2026 • Caliph Commerce Domain Conclave</span>
+      </div>
+      <div>Caliph Life School, Thamarassery, Kozhikode • All rights reserved</div>
+    </div>
+  </footer>
+
+  <!-- SCRIPT APPLICATION LOGIC -->
+  <script src="/app.js"></script>
+</body>
+</html>
