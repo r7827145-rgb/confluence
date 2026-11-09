@@ -1123,7 +1123,7 @@ window.exportSessionPDF = function(sessionId) {
   doc.setFontSize(10);
   doc.setFont('helvetica', 'normal');
   doc.setTextColor(203, 213, 225);
-  doc.text("Caliph Life School, Thamarassery • Date: Monday, 09 November 2026", 14, 30);
+  doc.text("Caliph Life School, Thamarassery • Date: Tuesday, 10 November 2026", 14, 30);
 
   // Session Details Box
   doc.setFillColor(248, 250, 252);
